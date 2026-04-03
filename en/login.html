@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — OCHO</title>
+  <meta name="description" content="Access the OCHO digital ecosystem." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" href="/assets/img/favicon/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/assets/img/favicon/favicon-32x32.png" />
+<link rel="stylesheet" href="/assets/css/styles.css" />
+<link rel="stylesheet" href="/assets/css/components.css" />
+<link rel="stylesheet" href="/assets/css/pages.css" />
+<script type="module" src="/assets/js/auth.js"></script>
+</head>
+
+<body class="auth-body">
+  <main class="auth-layout">
+
+    <section class="auth-shell">
+
+      <!-- LEFT SIDE (BRAND) -->
+      <div class="auth-brand">
+        <div class="auth-brand-inner">
+          <p class="auth-eyebrow">OCHO</p>
+
+          <h1>To log in again is to build again.</h1>
+
+          <p class="auth-quote">
+            Access content, thinking, and tools designed for those who don’t follow systems. They create them.
+          </p>
+
+          <ul class="auth-benefits">
+            <li>Access to exclusive content</li>
+            <li>OCHO ecosystem tools</li>
+            <li>Strategic resources and learning</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- RIGHT SIDE (FORM) -->
+      <div class="auth-form-panel panel">
+
+        <a class="auth-back" href="/en/index.html">← Back</a>
+
+        <div class="auth-head">
+          <p class="eyebrow">Login</p>
+          <h2>Sign in</h2>
+          <p class="section-text">
+            Enter your credentials to access the system.
+          </p>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="name@company.com"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+            >
+          </div>
+
+          <button class="btn btn-solid btn-full" type="submit">
+            Sign in
+          </button>
+
+          <p class="form-status" id="authStatus" aria-live="polite"></p>
+
+        </form>
+
+        <p class="auth-switch">
+          Don’t have an account?
+          <a href="/en/register.html">Create account</a>
+        </p>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script type="module" src="assets/js/auth.js"></script>
+</body>
+</html>

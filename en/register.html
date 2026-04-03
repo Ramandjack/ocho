@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register — OCHO</title>
+  <meta name="description" content="Join the OCHO digital ecosystem." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="icon" href="/assets/img/favicon/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/assets/img/favicon/favicon-32x32.png" />
+    <link rel="stylesheet" href="/assets/css/styles.css" />
+    <link rel="stylesheet" href="/assets/css/components.css" />
+    <link rel="stylesheet" href="/assets/css/pages.css" />
+    <script type="module" src="/assets/js/auth.js"></script>
+</head>
+
+<body class="auth-body">
+
+  <main class="auth-layout">
+    <section class="auth-shell">
+
+      <div class="auth-brand">
+        <div class="auth-brand-inner">
+          <p class="auth-eyebrow">OCHO COMMUNITY</p>
+          <h1>Access ideas, clarity, and content with direction.</h1>
+          <p class="auth-quote">
+            Newsletter, photography, magazines, books, and curated pieces for a community that values clarity, systems, and vision.
+          </p>
+
+          <ul class="auth-benefits">
+            <li>Curated content</li>
+            <li>Exclusive resources</li>
+            <li>Editorial and strategic perspective</li>
+            <li>Early access to new releases</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="auth-form-panel panel">
+        <a class="auth-back" href="/en/index.html">← Back</a>
+
+        <div class="auth-head">
+          <p class="eyebrow">Register</p>
+          <h2>Join the OCHO community</h2>
+          <p class="section-text">
+            Leave your details to create your account and receive valuable content tailored to you.
+          </p>
+        </div>
+
+        <form id="registerForm" class="auth-form auth-form-extended">
+
+          <div class="field-row">
+            <div class="field">
+              <label for="firstName">First name</label>
+              <input id="firstName" name="first_name" type="text" placeholder="Your name" required>
+            </div>
+
+            <div class="field">
+              <label for="lastName">Last name</label>
+              <input id="lastName" name="last_name" type="text" placeholder="Your last name" required>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" placeholder="name@company.com" required>
+            </div>
+
+            <div class="field">
+              <label for="phone">Mobile phone</label>
+              <input id="phone" name="phone" type="tel" placeholder="+54 9 341 000 0000" required>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="city">City</label>
+              <input id="city" name="city" type="text" placeholder="Rosario, Santa Fe" required>
+            </div>
+
+            <div class="field">
+              <label for="country">Country</label>
+              <input id="country" name="country" type="text" placeholder="Argentina">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="company">Company / project</label>
+              <input id="company" name="company" type="text" placeholder="Company or project name">
+            </div>
+
+            <div class="field">
+              <label for="role">Role</label>
+              <input id="role" name="role" type="text" placeholder="Founder, marketing, management, etc.">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="interest">What type of content interests you the most?</label>
+            <select id="interest" name="interest" required>
+              <option value="">Select</option>
+              <option value="branding">Branding and positioning</option>
+              <option value="digital_products">Digital products</option>
+              <option value="ai_systems">AI systems and automation</option>
+              <option value="ecommerce">Ecommerce</option>
+              <option value="marketing">Marketing and growth</option>
+              <option value="editorial">Photography, books and editorial content</option>
+              <option value="all">All of the above</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="profile">Tell us briefly about yourself</label>
+            <textarea
+              id="profile"
+              name="profile"
+              rows="4"
+              placeholder="Your project, your current stage, what you're looking for or the type of content you value most."
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" placeholder="Minimum 6 characters" required minlength="6">
+          </div>
+
+          <div class="consent-group">
+            <label class="consent-check">
+              <input id="newsletterConsent" name="newsletter_consent" type="checkbox" required>
+              <span>
+                I agree to receive newsletters, updates, editorial resources and valuable communications from OCHO.
+              </span>
+            </label>
+
+            <label class="consent-check">
+              <input id="dataConsent" name="data_consent" type="checkbox" required>
+              <span>
+                I agree that my data may be used to personalize content, segmentation and CRM marketing actions.
+              </span>
+            </label>
+          </div>
+
+          <button class="btn btn-solid btn-full" type="submit">
+            Create account
+          </button>
+
+          <p class="form-status" id="authStatus" aria-live="polite"></p>
+        </form>
+
+        <p class="auth-switch">
+          Already have an account?
+          <a href="/en/login.html">Sign in</a>
+        </p>
+      </div>
+
+    </section>
+  </main>
+
+  <script type="module" src="assets/js/auth.js"></script>
+</body>
+</html>

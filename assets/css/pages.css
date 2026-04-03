@@ -1,0 +1,508 @@
+/* =========================
+   BASE PAGES
+========================= */
+
+.auth-body {
+  min-height: 100vh;
+}
+
+.auth-layout {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+
+.auth-card {
+  width: min(100%, 460px);
+}
+
+.auth-card .panel,
+.auth-card.panel {
+  backdrop-filter: blur(10px);
+}
+
+.auth-card h1 {
+  margin-bottom: 12px;
+  font-size: clamp(2.1rem, 5vw, 3.3rem);
+  line-height: 0.98;
+}
+
+.auth-back {
+  display: inline-block;
+  margin-bottom: 26px;
+  color: var(--muted);
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.auth-back:hover {
+  color: var(--text);
+  transform: translateX(-1px);
+}
+
+.auth-switch {
+  margin-top: 18px;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.auth-switch a {
+  color: var(--text);
+  transition: opacity 0.2s ease;
+}
+
+.auth-switch a:hover {
+  opacity: 0.8;
+}
+
+.protected-page {
+  min-height: calc(100vh - 78px);
+}
+
+.dashboard-hero {
+  margin-bottom: 24px;
+}
+
+.dashboard-grid {
+  align-items: stretch;
+}
+
+/* =========================
+   AUTH OCHO / CRM FORM
+========================= */
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: 1.04fr 0.96fr;
+  width: 100%;
+  max-width: 1180px;
+  min-height: 720px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 30px;
+  overflow: hidden;
+  background: #050505;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+}
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  padding: 64px;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.05) 0%, transparent 28%),
+    radial-gradient(circle at 70% 70%, rgba(255, 255, 255, 0.03) 0%, transparent 24%),
+    linear-gradient(180deg, #0b0b0b 0%, #050505 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.auth-brand-inner {
+  max-width: 470px;
+}
+
+.auth-eyebrow {
+  margin: 0 0 18px;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: #777;
+}
+
+.auth-brand h1 {
+  max-width: 12ch;
+  margin-bottom: 22px;
+  font-size: clamp(2.5rem, 4vw, 3.5rem);
+  line-height: 0.96;
+  letter-spacing: -0.045em;
+}
+
+.auth-quote {
+  margin: 0 0 28px;
+  max-width: 34ch;
+  color: #9a9a9a;
+  line-height: 1.75;
+}
+
+.auth-benefits {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 14px;
+}
+
+.auth-benefits li {
+  position: relative;
+  padding-left: 18px;
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.55;
+}
+
+.auth-benefits li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.72em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.72);
+  transform: translateY(-50%);
+}
+
+.auth-form-panel {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 44px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, rgba(255,255,255,0.01) 100%);
+}
+
+.auth-head {
+  margin-bottom: 28px;
+}
+
+.auth-head h2 {
+  margin-bottom: 10px;
+  max-width: none;
+  line-height: 0.98;
+}
+
+.auth-head .section-text {
+  max-width: 44ch;
+}
+
+.auth-form {
+  display: grid;
+  gap: 16px;
+}
+
+.auth-form-extended {
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 0.86rem;
+  color: #aaa;
+  letter-spacing: 0.01em;
+}
+
+.auth-form .field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.auth-form textarea {
+  min-height: 120px;
+}
+
+.auth-form .btn-solid {
+  margin-top: 8px;
+}
+
+.consent-group {
+  display: grid;
+  gap: 14px;
+  margin-top: 6px;
+  padding-top: 4px;
+}
+
+.consent-check {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  align-items: start;
+  gap: 12px;
+  color: var(--muted);
+  font-size: 0.93rem;
+  line-height: 1.55;
+}
+
+.consent-check input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  min-height: auto;
+  margin: 2px 0 0;
+  accent-color: #ffffff;
+}
+
+.auth-form-panel .form-status {
+  margin-top: 4px;
+}
+
+/* =========================
+   PANEL OCHO
+========================= */
+
+.protected-page main {
+  padding-bottom: 40px;
+}
+
+.dashboard-hero {
+  position: relative;
+  overflow: hidden;
+  padding: 36px;
+}
+
+.dashboard-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(255, 255, 255, 0.04), transparent 24%),
+    radial-gradient(circle at 85% 0%, rgba(255, 255, 255, 0.03), transparent 20%);
+}
+
+.dashboard-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard-hero h1 {
+  max-width: 11ch;
+  margin-bottom: 14px;
+}
+
+.dashboard-grid .panel {
+  min-height: 180px;
+}
+
+.dashboard-grid h3 {
+  margin-bottom: 10px;
+}
+
+.dashboard-grid p {
+  line-height: 1.65;
+}
+
+.dashboard-hero .hero-tags {
+  margin-top: 28px;
+  margin-bottom: 28px;
+}
+
+.dashboard-hero .dashboard-grid {
+  margin-top: 0;
+}
+
+.dashboard-hero .cards-grid {
+  align-items: stretch;
+}
+
+.dashboard-hero .hero-tags + .dashboard-grid {
+  margin-top: 0;
+}
+
+.dashboard-hero .hero-tags span {
+  display: inline-flex;
+  align-items: center;
+}
+
+#authUserName,
+#authUserEmail {
+  word-break: break-word;
+}
+
+.panel .eyebrow + h3,
+.panel .eyebrow + h2 {
+  margin-top: 0;
+}
+
+#profile .note-card,
+#profile .form-panel {
+  min-height: 100%;
+}
+
+#profile .form-panel h3 {
+  line-height: 1;
+}
+
+#profile .contact-form label {
+  display: grid;
+  gap: 8px;
+}
+
+#profile .contact-form input[disabled] {
+  opacity: 1;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.025);
+  color: rgba(255, 255, 255, 0.88);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+#profile .btn-ghost {
+  margin-top: 6px;
+}
+
+#resources .service-card,
+#library .step-card {
+  position: relative;
+  overflow: hidden;
+}
+
+#resources .service-card::after,
+#library .step-card::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.16) 20%,
+    rgba(255, 255, 255, 0.16) 80%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+
+#resources .service-card:hover::after,
+#library .step-card:hover::after {
+  opacity: 1;
+}
+
+.auth-loading main {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.auth-ready main {
+  opacity: 1;
+  transition: opacity 0.4s ease;
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media (max-width: 980px) {
+  .auth-shell {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .auth-brand {
+    padding: 44px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .auth-brand-inner {
+    max-width: 100%;
+  }
+
+  .auth-brand h1,
+  .auth-quote {
+    max-width: none;
+  }
+
+  .auth-form-panel {
+    padding: 36px;
+  }
+
+  .dashboard-hero {
+    padding: 28px;
+  }
+
+  .dashboard-grid .panel {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-layout {
+    padding: 20px 14px;
+  }
+
+  .auth-shell {
+    border-radius: 24px;
+  }
+
+  .auth-brand {
+    padding: 34px 30px;
+  }
+
+  .auth-form-panel {
+    padding: 30px;
+  }
+
+  .auth-form .field-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard-hero {
+    padding: 24px;
+  }
+
+  .dashboard-hero h1 {
+    max-width: 100%;
+  }
+
+  .dashboard-hero .hero-tags {
+    margin-top: 22px;
+    margin-bottom: 22px;
+  }
+
+  .static-nav {
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 640px) {
+  .auth-brand {
+    display: none;
+  }
+
+  .auth-shell {
+    max-width: 100%;
+    min-height: auto;
+  }
+
+  .auth-form-panel {
+    padding: 24px;
+  }
+
+  .auth-head {
+    margin-bottom: 24px;
+  }
+
+  .auth-switch {
+    margin-top: 16px;
+  }
+}
+
+@media (max-width: 520px) {
+  .dashboard-hero {
+    padding: 20px;
+  }
+
+  #profile .contact-form {
+    gap: 14px;
+  }
+}
+
+@media (max-width: 420px) {
+  .auth-layout {
+    padding: 14px 10px;
+  }
+
+  .auth-shell {
+    border-radius: 20px;
+  }
+
+  .auth-form-panel {
+    padding: 20px;
+  }
+
+  .consent-check {
+    gap: 10px;
+    font-size: 0.9rem;
+  }
+}

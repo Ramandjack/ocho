@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Registro — OCHO</title>
+  <meta name="description" content="Registro al ecosistema digital de OCHO." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/assets/img/favicon/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/assets/img/favicon/favicon-32x32.png" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/pages.css" />
+</head>
+<body class="auth-body">
+
+  <main class="auth-layout">
+    <section class="auth-shell">
+
+      <div class="auth-brand">
+        <div class="auth-brand-inner">
+          <p class="auth-eyebrow">OCHO COMMUNITY</p>
+          <h1>Accede a ideas, criterio y contenido con dirección.</h1>
+          <p class="auth-quote">
+            Newsletter, fotografías, revistas, libros y piezas seleccionadas para una comunidad que valora claridad, sistema y visión.
+          </p>
+
+          <ul class="auth-benefits">
+            <li>Contenido curado</li>
+            <li>Recursos exclusivos</li>
+            <li>Mirada editorial y estratégica</li>
+            <li>Acceso anticipado a novedades</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="auth-form-panel panel">
+        <a class="auth-back" href="index.html">← Volver</a>
+
+        <div class="auth-head">
+          <p class="eyebrow">Registro</p>
+          <h2>Únete a la comunidad OCHO</h2>
+          <p class="section-text">
+            Déjanos tus datos para crear tu cuenta y enviarte contenido de valor relevante para ti.
+          </p>
+        </div>
+
+        <form id="registerForm" class="auth-form auth-form-extended">
+          <div class="field-row">
+            <div class="field">
+              <label for="firstName">Nombre</label>
+              <input id="firstName" name="first_name" type="text" placeholder="Tu nombre" required>
+            </div>
+
+            <div class="field">
+              <label for="lastName">Apellido</label>
+              <input id="lastName" name="last_name" type="text" placeholder="Tu apellido" required>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" name="email" type="email" placeholder="nombre@empresa.com" required>
+            </div>
+
+            <div class="field">
+              <label for="phone">Teléfono celular</label>
+              <input id="phone" name="phone" type="tel" placeholder="+54 9 341 000 0000" required>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="city">Localidad</label>
+              <input id="city" name="city" type="text" placeholder="Rosario, Santa Fe" required>
+            </div>
+
+            <div class="field">
+              <label for="country">País</label>
+              <input id="country" name="country" type="text" placeholder="Argentina">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label for="company">Empresa / proyecto</label>
+              <input id="company" name="company" type="text" placeholder="Nombre de empresa o proyecto">
+            </div>
+
+            <div class="field">
+              <label for="role">Rol</label>
+              <input id="role" name="role" type="text" placeholder="Founder, marketing, dirección, etc.">
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="interest">¿Qué tipo de contenido te interesa más?</label>
+            <select id="interest" name="interest" required>
+              <option value="">Seleccionar</option>
+              <option value="branding">Branding y posicionamiento</option>
+              <option value="digital_products">Productos digitales</option>
+              <option value="ai_systems">Sistemas y automatización con IA</option>
+              <option value="ecommerce">Ecommerce</option>
+              <option value="marketing">Marketing y growth</option>
+              <option value="editorial">Fotografía, libros y contenido editorial</option>
+              <option value="all">Todo lo anterior</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="profile">Cuéntanos brevemente sobre ti</label>
+            <textarea
+              id="profile"
+              name="profile"
+              rows="4"
+              placeholder="Tu proyecto, tu momento actual, lo que estás buscando o el tipo de contenido que más valoras."
+            ></textarea>
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input id="password" name="password" type="password" placeholder="Mínimo 6 caracteres" required minlength="6">
+          </div>
+
+          <div class="consent-group">
+            <label class="consent-check">
+              <input id="newsletterConsent" name="newsletter_consent" type="checkbox" required>
+              <span>
+                Acepto recibir newsletters, novedades, recursos editoriales y comunicaciones de valor de OCHO.
+              </span>
+            </label>
+
+            <label class="consent-check">
+              <input id="dataConsent" name="data_consent" type="checkbox" required>
+              <span>
+                Acepto que mis datos sean utilizados para personalizar contenido, segmentación y acciones de CRM marketing.
+              </span>
+            </label>
+          </div>
+
+          <button class="btn btn-solid btn-full" type="submit">
+            Crear cuenta
+          </button>
+
+          <p class="form-status" id="authStatus" aria-live="polite"></p>
+        </form>
+
+        <p class="auth-switch">
+          ¿Ya tienes cuenta?
+          <a href="login.html">Ingresar</a>
+        </p>
+      </div>
+
+    </section>
+  </main>
+
+  <script type="module" src="assets/js/auth.js"></script>
+</body>
+</html>

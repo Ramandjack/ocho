@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — OCHO</title>
+  <meta name="description" content="Acceso al ecosistema digital de OCHO." />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="icon" href="/assets/img/favicon/favicon.ico" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon/favicon-16x16.png" />
+  <link rel="apple-touch-icon" href="/assets/img/favicon/favicon-32x32.png" />
+  <link rel="stylesheet" href="assets/css/styles.css" />
+  <link rel="stylesheet" href="assets/css/components.css" />
+  <link rel="stylesheet" href="assets/css/pages.css" />
+</head>
+
+<body class="auth-body">
+  <main class="auth-layout">
+
+    <section class="auth-shell">
+
+      <!-- LADO IZQUIERDO (BRAND) -->
+      <div class="auth-brand">
+        <div class="auth-brand-inner">
+          <p class="auth-eyebrow">OCHO</p>
+
+          <h1>Volver a entrar es volver a construir.</h1>
+
+          <p class="auth-quote">
+            Accede a contenido, criterio y herramientas diseñadas para quienes no siguen sistemas. Los crean.
+          </p>
+
+          <ul class="auth-benefits">
+            <li>Acceso a contenido exclusivo</li>
+            <li>Herramientas del ecosistema OCHO</li>
+            <li>Recursos estratégicos y formación</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- LADO DERECHO (FORM) -->
+      <div class="auth-form-panel panel">
+
+        <a class="auth-back" href="index.html">← Volver</a>
+
+        <div class="auth-head">
+          <p class="eyebrow">Login</p>
+          <h2>Ingresar</h2>
+          <p class="section-text">
+            Introduce tus credenciales para acceder al sistema.
+          </p>
+        </div>
+
+        <form id="loginForm" class="auth-form">
+
+          <div class="field">
+            <label for="email">Email</label>
+            <input
+              id="email"
+              name="email"
+              type="email"
+              placeholder="nombre@empresa.com"
+              required
+            >
+          </div>
+
+          <div class="field">
+            <label for="password">Password</label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              placeholder="••••••••"
+              required
+            >
+          </div>
+
+          <button class="btn btn-solid btn-full" type="submit">
+            Ingresar
+          </button>
+
+          <p class="form-status" id="authStatus" aria-live="polite"></p>
+
+        </form>
+
+        <p class="auth-switch">
+          ¿No tienes cuenta?
+          <a href="register.html">Crear cuenta</a>
+        </p>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <script type="module" src="assets/js/auth.js"></script>
+</body>
+</html>

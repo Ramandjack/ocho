@@ -1,7 +1,7 @@
 const API_BASE =
   window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
     ? "http://127.0.0.1:3000"
-    : "https://ocho-backend.onrender.com";
+    : "https://api.ocho.com.ar";
 
 const registerForm = document.getElementById("registerForm");
 const loginForm = document.getElementById("loginForm");

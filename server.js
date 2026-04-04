@@ -4,6 +4,7 @@ import { fileURLToPath } from "url";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import dotenv from "dotenv";
 import crypto from "crypto";
 
@@ -16,6 +17,8 @@ const __dirname = path.dirname(__filename);
 
 const PORT = Number(process.env.PORT || 3000);
 const JWT_SECRET = process.env.JWT_SECRET || "ocho-dev-secret-change-this";
+const NODE_ENV = process.env.NODE_ENV || "development";
+const IS_PRODUCTION = NODE_ENV === "production";
 
 const NOCODB_TOKEN = process.env.NOCODB_TOKEN || "";
 const NOCODB_USERS_URL = process.env.NOCODB_USERS_URL || "";
@@ -23,6 +26,34 @@ const NOCODB_LEADS_URL = process.env.NOCODB_LEADS_URL || "";
 
 const N8N_LEAD_WEBHOOK = process.env.N8N_LEAD_WEBHOOK || "";
 const N8N_API_KEY = process.env.N8N_API_KEY || "";
+
+const DEFAULT_CORS_ORIGINS = [
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "https://www.ocho.com.ar",
+  "https://ocho.com.ar"
+];
+
+const CORS_ORIGINS = (
+  process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : DEFAULT_CORS_ORIGINS
+);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (CORS_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origen no permitido por CORS: ${origin}`));
+  },
+  credentials: true
+}));
 
 app.use(express.json());
 app.use(cookieParser());
@@ -67,6 +98,15 @@ function createToken(user) {
     JWT_SECRET,
     { expiresIn: "7d" }
   );
+}
+
+function getCookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+    secure: IS_PRODUCTION,
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  };
 }
 
 function authMiddleware(req, res, next) {
@@ -326,12 +366,7 @@ app.post("/api/register", async (req, res) => {
     const createdUser = await createUserRecord(newUser);
     const token = createToken(createdUser);
 
-    res.cookie("ocho_token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-      maxAge: 1000 * 60 * 60 * 24 * 7
-    });
+    res.cookie("ocho_token", token, getCookieOptions());
 
     return res.status(201).json({
       success: true,
@@ -388,12 +423,7 @@ app.post("/api/login", async (req, res) => {
 
     const token = createToken(user);
 
-    res.cookie("ocho_token", token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: false,
-      maxAge: 1000 * 60 * 60 * 24 * 7
-    });
+    res.cookie("ocho_token", token, getCookieOptions());
 
     return res.json({
       success: true,
@@ -444,7 +474,7 @@ app.get("/api/me", authMiddleware, async (req, res) => {
 });
 
 app.post("/api/logout", (_req, res) => {
-  res.clearCookie("ocho_token");
+  res.clearCookie("ocho_token", getCookieOptions());
   return res.json({
     success: true,
     message: "Sesión cerrada"

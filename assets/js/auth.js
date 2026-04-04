@@ -1,10 +1,11 @@
+const API_BASE =
+  window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
+    ? "http://127.0.0.1:3000"
+    : "https://TU-BACKEND-EN-RENDER.onrender.com";
+
 const registerForm = document.getElementById("registerForm");
 const loginForm = document.getElementById("loginForm");
 const authStatus = document.getElementById("authStatus");
-
-/* =========================
-   STATUS UI
-========================= */
 
 function setStatus(message, type = "") {
   if (!authStatus) return;
@@ -13,12 +14,8 @@ function setStatus(message, type = "") {
   if (type) authStatus.classList.add(type);
 }
 
-/* =========================
-   API
-========================= */
-
 async function apiFetch(url, options = {}) {
-  const response = await fetch(url, {
+  const response = await fetch(`${API_BASE}${url}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
@@ -71,7 +68,6 @@ async function requireAuth() {
     }
 
     return result.user;
-
   } catch (_error) {
     window.location.href = "/login.html";
     return null;
@@ -82,6 +78,7 @@ async function logoutAndRedirect() {
   try {
     await apiFetch("/api/logout", { method: "POST" });
   } catch (_error) {
+    // ignore
   } finally {
     window.location.href = "/login.html";
   }
@@ -125,7 +122,6 @@ if (registerForm) {
       setTimeout(() => {
         window.location.href = "/panel.html";
       }, 900);
-
     } catch (error) {
       setStatus(error.message || "No se pudo crear la cuenta", "error");
     }
@@ -159,7 +155,6 @@ if (loginForm) {
       setTimeout(() => {
         window.location.href = "/panel.html";
       }, 700);
-
     } catch (error) {
       setStatus(error.message || "No se pudo iniciar sesión", "error");
     }

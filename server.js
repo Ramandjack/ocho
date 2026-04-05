@@ -63,6 +63,10 @@ app.use("/assets", express.static(path.join(__dirname, "assets")));
 app.use("/en", express.static(path.join(__dirname, "en")));
 app.use("/nl", express.static(path.join(__dirname, "nl")));
 
+/* =========================
+   HELPERS
+========================= */
+
 function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
@@ -144,6 +148,24 @@ function authMiddleware(req, res, next) {
       message: "Sesión inválida o expirada"
     });
   }
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "No autenticado"
+    });
+  }
+
+  if (String(req.user.role || "").toLowerCase() !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "No autorizado"
+    });
+  }
+
+  next();
 }
 
 function requireUsersConfig() {
@@ -241,6 +263,48 @@ async function createLeadRecord(payload) {
   return created || payload;
 }
 
+async function getAllLeads() {
+  if (!NOCODB_TOKEN || !NOCODB_LEADS_URL) {
+    return [];
+  }
+
+  const separator = NOCODB_LEADS_URL.includes("?") ? "&" : "?";
+  const url = `${NOCODB_LEADS_URL}${separator}limit=1000`;
+
+  const result = await ncdbFetch(url, { method: "GET" });
+  return extractRecords(result).map(flattenRecord);
+}
+
+async function updateUserRoleInNoco(uuid, role) {
+  requireUsersConfig();
+
+  const users = await getAllUsers();
+  const target = users.find((u) => u.uuid === uuid);
+
+  if (!target) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  const recordId = target.nocodb_record_id || target.Id || target.id;
+  if (!recordId) {
+    throw new Error("No se encontró el record id del usuario");
+  }
+
+  const baseUrl = NOCODB_USERS_URL.replace(/\/$/, "");
+  const updateUrl = `${baseUrl}/${recordId}`;
+
+  const result = await ncdbFetch(updateUrl, {
+    method: "PATCH",
+    body: JSON.stringify({
+      fields: {
+        role
+      }
+    })
+  });
+
+  return flattenRecord(result);
+}
+
 function inferUserSegment(interest) {
   switch (interest) {
     case "ai_systems":
@@ -296,6 +360,10 @@ app.get("/logout.html", (_req, res) => {
 
 app.get("/panel.html", (_req, res) => {
   res.sendFile(path.join(__dirname, "panel.html"));
+});
+
+app.get("/admin.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
 });
 
 /* =========================
@@ -591,6 +659,77 @@ app.post("/api/lead", async (req, res) => {
     });
   }
 });
+
+/* =========================
+   ADMIN API
+========================= */
+
+app.get("/api/admin/users", authMiddleware, requireAdmin, async (_req, res) => {
+  try {
+    const users = await getAllUsers();
+
+    return res.json({
+      success: true,
+      users: users.map((user) => sanitizeUser(user))
+    });
+  } catch (error) {
+    console.error("Error en /api/admin/users:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "No se pudieron obtener los usuarios"
+    });
+  }
+});
+
+app.get("/api/admin/leads", authMiddleware, requireAdmin, async (_req, res) => {
+  try {
+    const leads = await getAllLeads();
+
+    return res.json({
+      success: true,
+      leads
+    });
+  } catch (error) {
+    console.error("Error en /api/admin/leads:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "No se pudieron obtener los leads"
+    });
+  }
+});
+
+app.patch("/api/admin/users/:uuid/role", authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { uuid } = req.params;
+    const { role } = req.body || {};
+
+    const allowedRoles = ["admin", "member"];
+    if (!allowedRoles.includes(String(role || "").toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: "Rol inválido"
+      });
+    }
+
+    const updatedUser = await updateUserRoleInNoco(uuid, String(role).toLowerCase());
+
+    return res.json({
+      success: true,
+      message: "Rol actualizado correctamente",
+      user: sanitizeUser(updatedUser)
+    });
+  } catch (error) {
+    console.error("Error en /api/admin/users/:uuid/role:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "No se pudo actualizar el rol"
+    });
+  }
+});
+
+/* =========================
+   START
+========================= */
 
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://127.0.0.1:${PORT}`);

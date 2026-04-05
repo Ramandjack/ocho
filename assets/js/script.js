@@ -1,7 +1,7 @@
 const API_BASE =
   window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
     ? "http://127.0.0.1:3000"
-    : "https://ocho-backend.onrender.com";
+    : "https://api.ocho.com.ar";
 
 const form = document.getElementById("leadForm");
 const submitBtn = document.getElementById("leadSubmitBtn");
@@ -24,8 +24,8 @@ if (form && submitBtn && formStatus) {
       name: data.get("name")?.toString().trim() || "",
       email: data.get("email")?.toString().trim() || "",
       company: data.get("company")?.toString().trim() || "",
-      project_type: data.get("project_type")?.toString() || "",
-      budget: data.get("budget")?.toString() || "",
+      project_type: data.get("project_type")?.toString().trim() || "",
+      budget: data.get("budget")?.toString().trim() || "",
       message: data.get("message")?.toString().trim() || "",
       source: "ocho_web",
       page: window.location.href,

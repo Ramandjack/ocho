@@ -33,7 +33,8 @@ const DEFAULT_CORS_ORIGINS = [
   "http://127.0.0.1:5500",
   "http://localhost:5500",
   "https://www.ocho.com.ar",
-  "https://ocho.com.ar"
+  "https://ocho.com.ar",
+  "https://api.ocho.com.ar"
 ];
 
 const CORS_ORIGINS = (
@@ -103,15 +104,30 @@ function createToken(user) {
 function getCookieOptions() {
   return {
     httpOnly: true,
-    sameSite: IS_PRODUCTION ? "none" : "lax",
     secure: IS_PRODUCTION,
-    maxAge: 1000 * 60 * 60 * 24 * 7
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    path: "/"
   };
+}
+
+function setAuthCookie(res, token) {
+  res.cookie("ocho_token", token, getCookieOptions());
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie("ocho_token", {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+    path: "/"
+  });
 }
 
 function authMiddleware(req, res, next) {
   try {
     const token = req.cookies?.ocho_token;
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -283,6 +299,18 @@ app.get("/panel.html", (_req, res) => {
 });
 
 /* =========================
+   HEALTH
+========================= */
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    success: true,
+    status: "ok",
+    environment: NODE_ENV
+  });
+});
+
+/* =========================
    AUTH API
 ========================= */
 
@@ -366,7 +394,7 @@ app.post("/api/register", async (req, res) => {
     const createdUser = await createUserRecord(newUser);
     const token = createToken(createdUser);
 
-    res.cookie("ocho_token", token, getCookieOptions());
+    setAuthCookie(res, token);
 
     return res.status(201).json({
       success: true,
@@ -406,6 +434,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     const hash = user.password_hash || user.passwordHash;
+
     if (!hash) {
       return res.status(401).json({
         success: false,
@@ -414,6 +443,7 @@ app.post("/api/login", async (req, res) => {
     }
 
     const isValidPassword = await bcrypt.compare(String(password), hash);
+
     if (!isValidPassword) {
       return res.status(401).json({
         success: false,
@@ -423,7 +453,7 @@ app.post("/api/login", async (req, res) => {
 
     const token = createToken(user);
 
-    res.cookie("ocho_token", token, getCookieOptions());
+    setAuthCookie(res, token);
 
     return res.json({
       success: true,
@@ -474,7 +504,8 @@ app.get("/api/me", authMiddleware, async (req, res) => {
 });
 
 app.post("/api/logout", (_req, res) => {
-  res.clearCookie("ocho_token", getCookieOptions());
+  clearAuthCookie(res);
+
   return res.json({
     success: true,
     message: "Sesión cerrada"
@@ -490,6 +521,7 @@ app.post("/api/lead", async (req, res) => {
     const payload = req.body || {};
 
     const requiredFields = ["name", "email", "project_type", "budget", "message"];
+
     for (const field of requiredFields) {
       if (!payload[field]) {
         return res.status(400).json({
@@ -506,7 +538,10 @@ app.post("/api/lead", async (req, res) => {
       project_type: String(payload.project_type).trim(),
       budget: String(payload.budget).trim(),
       message: String(payload.message).trim(),
-      source: "website_contact",
+      source: String(payload.source || "website_contact").trim(),
+      page: String(payload.page || "").trim(),
+      user_agent: String(payload.user_agent || "").trim(),
+      created_at: String(payload.created_at || new Date().toISOString()).trim(),
       stage: "new",
       segment: inferLeadSegment(String(payload.project_type).trim())
     };
@@ -521,7 +556,7 @@ app.post("/api/lead", async (req, res) => {
           "Content-Type": "application/json",
           ...(N8N_API_KEY ? { "x-api-key": N8N_API_KEY } : {})
         },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(leadPayload)
       });
 
       const contentType = response.headers.get("content-type") || "";

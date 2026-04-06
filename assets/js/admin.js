@@ -1,275 +1,773 @@
-const API_BASE =
-  window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
-    ? "http://127.0.0.1:3000"
-    : "https://api.ocho.com.ar";
+import express from "express";
+import path from "path";
+import { fileURLToPath } from "url";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
+import cors from "cors";
+import dotenv from "dotenv";
+import crypto from "crypto";
 
-const state = {
-  currentUser: null,
-  users: [],
-  leads: [],
-  stats: null
-};
+dotenv.config();
 
-async function apiFetch(url, options = {}) {
-  const response = await fetch(`${API_BASE}${url}`, {
-    credentials: "include",
+const app = express();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const PORT = Number(process.env.PORT || 3000);
+const JWT_SECRET = process.env.JWT_SECRET || "ocho-dev-secret-change-this";
+const NODE_ENV = process.env.NODE_ENV || "development";
+const IS_PRODUCTION = NODE_ENV === "production";
+
+const NOCODB_TOKEN = process.env.NOCODB_TOKEN || "";
+const NOCODB_USERS_URL = process.env.NOCODB_USERS_URL || "";
+const NOCODB_LEADS_URL = process.env.NOCODB_LEADS_URL || "";
+
+const N8N_LEAD_WEBHOOK = process.env.N8N_LEAD_WEBHOOK || "";
+const N8N_API_KEY = process.env.N8N_API_KEY || "";
+
+const DEFAULT_CORS_ORIGINS = [
+  "http://127.0.0.1:3000",
+  "http://localhost:3000",
+  "http://127.0.0.1:5500",
+  "http://localhost:5500",
+  "https://www.ocho.com.ar",
+  "https://ocho.com.ar",
+  "https://api.ocho.com.ar"
+];
+
+const CORS_ORIGINS = (
+  process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((origin) => origin.trim()).filter(Boolean)
+    : DEFAULT_CORS_ORIGINS
+);
+
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin) return callback(null, true);
+
+    if (CORS_ORIGINS.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error(`Origen no permitido por CORS: ${origin}`));
+  },
+  credentials: true
+}));
+
+app.use(express.json());
+app.use(cookieParser());
+
+app.use("/assets", express.static(path.join(__dirname, "assets")));
+app.use("/en", express.static(path.join(__dirname, "en")));
+app.use("/nl", express.static(path.join(__dirname, "nl")));
+
+/* =========================
+   HELPERS
+========================= */
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function sanitizeUser(user) {
+  const safeUser = { ...user };
+  delete safeUser.password_hash;
+  delete safeUser.passwordHash;
+  return safeUser;
+}
+
+function createToken(user) {
+  return jwt.sign(
+    {
+      sub: user.uuid,
+      email: user.email,
+      role: user.role || "member",
+      first_name: user.first_name || "",
+      last_name: user.last_name || "",
+      full_name: user.full_name || "",
+      city: user.city || "",
+      country: user.country || "",
+      phone: user.phone || "",
+      company: user.company || "",
+      role_title: user.role_title || "",
+      interest: user.interest || "",
+      profile: user.profile || "",
+      newsletter_consent: Boolean(user.newsletter_consent),
+      data_consent: Boolean(user.data_consent),
+      status: user.status || "active",
+      source: user.source || "register_form",
+      segment: user.segment || "newsletter_only"
+    },
+    JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+}
+
+function getCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+    maxAge: 1000 * 60 * 60 * 24 * 7,
+    path: "/"
+  };
+}
+
+function setAuthCookie(res, token) {
+  res.cookie("ocho_token", token, getCookieOptions());
+}
+
+function clearAuthCookie(res) {
+  res.clearCookie("ocho_token", {
+    httpOnly: true,
+    secure: IS_PRODUCTION,
+    sameSite: IS_PRODUCTION ? "none" : "lax",
+    path: "/"
+  });
+}
+
+function authMiddleware(req, res, next) {
+  try {
+    const token = req.cookies?.ocho_token;
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No autenticado"
+      });
+    }
+
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    next();
+  } catch (_error) {
+    return res.status(401).json({
+      success: false,
+      message: "Sesión inválida o expirada"
+    });
+  }
+}
+
+function requireUsersConfig() {
+  if (!NOCODB_TOKEN || !NOCODB_USERS_URL) {
+    throw new Error("Faltan NOCODB_TOKEN o NOCODB_USERS_URL en .env");
+  }
+}
+
+async function ncdbFetch(url, options = {}) {
+  const response = await fetch(url, {
     headers: {
       "Content-Type": "application/json",
+      "xc-token": NOCODB_TOKEN,
       ...(options.headers || {})
     },
     ...options
   });
 
-  const data = await response.json().catch(() => ({}));
+  const contentType = response.headers.get("content-type") || "";
+  const data = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
 
   if (!response.ok) {
-    throw new Error(data.message || "Ocurrió un error");
+    throw new Error(
+      typeof data === "object" && data !== null
+        ? data.msg || data.message || JSON.stringify(data)
+        : String(data)
+    );
   }
 
   return data;
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
+function extractRecords(result) {
+  if (Array.isArray(result)) return result;
+  if (Array.isArray(result?.records)) return result.records;
+  if (Array.isArray(result?.list)) return result.list;
+  if (Array.isArray(result?.data)) return result.data;
+  return [];
 }
 
-function formatDate(value) {
-  if (!value) return "—";
+function flattenRecord(record) {
+  if (!record || typeof record !== "object") return {};
+  if (record.fields && typeof record.fields === "object") {
+    return {
+      ...(record.id ? { nocodb_record_id: record.id } : {}),
+      ...record.fields
+    };
+  }
+  return record;
+}
 
+async function getAllUsers() {
+  requireUsersConfig();
+
+  const separator = NOCODB_USERS_URL.includes("?") ? "&" : "?";
+  const url = `${NOCODB_USERS_URL}${separator}limit=1000`;
+
+  const result = await ncdbFetch(url, { method: "GET" });
+  return extractRecords(result).map(flattenRecord);
+}
+
+async function getUserByUuid(uuid) {
+  const users = await getAllUsers();
+  return users.find((u) => u.uuid === uuid) || null;
+}
+
+async function requireAdmin(req, res, next) {
   try {
-    return new Intl.DateTimeFormat("es-AR", {
-      dateStyle: "short",
-      timeStyle: "short"
-    }).format(new Date(value));
-  } catch {
-    return value;
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "No autenticado"
+      });
+    }
+
+    const dbUser = await getUserByUuid(req.user.sub);
+
+    if (!dbUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado"
+      });
+    }
+
+    if (String(dbUser.role || "").toLowerCase() !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado"
+      });
+    }
+
+    req.user = {
+      ...req.user,
+      ...dbUser,
+      role: dbUser.role || req.user.role || "member"
+    };
+
+    next();
+  } catch (error) {
+    console.error("Error en requireAdmin:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error validando permisos de administrador"
+    });
   }
 }
 
-function roleBadge(role) {
-  const safeRole = String(role || "member").toLowerCase();
-  return `<span class="admin-pill">${escapeHtml(safeRole)}</span>`;
+async function createUserRecord(payload) {
+  requireUsersConfig();
+
+  const result = await ncdbFetch(NOCODB_USERS_URL, {
+    method: "POST",
+    body: JSON.stringify([
+      {
+        fields: payload
+      }
+    ])
+  });
+
+  const created = extractRecords(result).map(flattenRecord)[0];
+  return created || payload;
 }
 
-function statusBadge(status) {
-  const safeStatus = String(status || "inactive").toLowerCase();
-
-  let variant = "";
-  if (safeStatus === "active") variant = "success";
-  if (safeStatus === "pending") variant = "warning";
-  if (safeStatus === "blocked" || safeStatus === "inactive") variant = "danger";
-
-  return `<span class="admin-pill ${variant}">${escapeHtml(safeStatus)}</span>`;
-}
-
-function setAdminIdentity(user) {
-  const adminName = document.getElementById("adminUserName");
-  const adminEmail = document.getElementById("adminUserEmail");
-  const adminRole = document.getElementById("adminUserRole");
-
-  const fullName =
-    user.full_name ||
-    [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
-    "Administrador";
-
-  if (adminName) adminName.textContent = fullName;
-  if (adminEmail) adminEmail.textContent = user.email || "Sin email";
-  if (adminRole) adminRole.textContent = `Rol: ${user.role || "admin"}`;
-}
-
-function renderStats(stats) {
-  const activeUsers = document.getElementById("statActiveUsers");
-  const totalLeads = document.getElementById("statTotalLeads");
-  const admins = document.getElementById("statAdmins");
-  const pendingUsers = document.getElementById("statPendingUsers");
-
-  if (activeUsers) activeUsers.textContent = stats.activeUsers;
-  if (totalLeads) totalLeads.textContent = stats.totalLeads;
-  if (admins) admins.textContent = stats.adminUsers;
-  if (pendingUsers) pendingUsers.textContent = stats.pendingUsers;
-}
-
-function renderUsersTable(users) {
-  const tbody = document.getElementById("adminUsersTableBody");
-  if (!tbody) return;
-
-  if (!users.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5">No hay usuarios disponibles.</td>
-      </tr>
-    `;
-    return;
-  }
-
-  tbody.innerHTML = users
-    .map((user) => {
-      const fullName =
-        user.full_name ||
-        [user.first_name, user.last_name].filter(Boolean).join(" ").trim() ||
-        "Sin nombre";
-
-      return `
-        <tr>
-          <td>
-            ${escapeHtml(fullName)}<br>
-            <span class="admin-muted">${escapeHtml(user.email || "Sin email")}</span>
-          </td>
-          <td>${roleBadge(user.role)}</td>
-          <td>${statusBadge(user.status)}</td>
-          <td>${formatDate(user.last_login_at || user.CreatedAt || user.created_at)}</td>
-          <td>
-            <button class="admin-btn" data-action="toggle-role" data-uuid="${escapeHtml(user.uuid)}">
-              Cambiar rol
-            </button>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
-}
-
-function renderLeadsTable(leads) {
-  const tbody = document.getElementById("adminLeadsTableBody");
-  if (!tbody) return;
-
-  if (!leads.length) {
-    tbody.innerHTML = `
-      <tr>
-        <td colspan="5">No hay leads disponibles.</td>
-      </tr>
-    `;
-    return;
-  }
-
-  tbody.innerHTML = leads
-    .map((lead) => `
-      <tr>
-        <td>
-          ${escapeHtml(lead.name || "Sin nombre")}<br>
-          <span class="admin-muted">${escapeHtml(lead.email || "Sin email")}</span>
-        </td>
-        <td>${escapeHtml(lead.company || "—")}</td>
-        <td>${escapeHtml(lead.project_type || "—")}</td>
-        <td>${escapeHtml(lead.budget || "—")}</td>
-        <td>${formatDate(lead.created_at || lead.CreatedAt)}</td>
-      </tr>
-    `)
-    .join("");
-}
-
-async function loadSession() {
-  const result = await apiFetch("/api/me", { method: "GET" });
-  const user = result?.user || {};
-
-  if ((user.role || "").toLowerCase() !== "admin") {
-    window.location.href = "/panel.html";
+async function createLeadRecord(payload) {
+  if (!NOCODB_TOKEN || !NOCODB_LEADS_URL) {
     return null;
   }
 
-  state.currentUser = user;
-  setAdminIdentity(user);
-  return user;
-}
-
-async function loadUsers() {
-  const result = await apiFetch("/api/admin/users", { method: "GET" });
-  state.users = result.users || [];
-  return state.users;
-}
-
-async function loadLeads() {
-  const result = await apiFetch("/api/admin/leads", { method: "GET" });
-  state.leads = result.leads || [];
-  return state.leads;
-}
-
-function buildStats() {
-  const users = state.users;
-  const leads = state.leads;
-
-  const stats = {
-    activeUsers: users.filter((u) => String(u.status || "").toLowerCase() === "active").length,
-    totalLeads: leads.length,
-    adminUsers: users.filter((u) => String(u.role || "").toLowerCase() === "admin").length,
-    pendingUsers: users.filter((u) => String(u.status || "").toLowerCase() === "pending").length
-  };
-
-  state.stats = stats;
-  renderStats(stats);
-}
-
-async function toggleUserRole(uuid) {
-  const user = state.users.find((u) => u.uuid === uuid);
-  if (!user) return;
-
-  const nextRole = String(user.role || "member").toLowerCase() === "admin" ? "member" : "admin";
-
-  await apiFetch(`/api/admin/users/${encodeURIComponent(uuid)}/role`, {
-    method: "PATCH",
-    body: JSON.stringify({ role: nextRole })
+  const result = await ncdbFetch(NOCODB_LEADS_URL, {
+    method: "POST",
+    body: JSON.stringify([
+      {
+        fields: payload
+      }
+    ])
   });
 
-  await refreshAdminData();
+  const created = extractRecords(result).map(flattenRecord)[0];
+  return created || payload;
 }
 
-function bindEvents() {
-  const usersTable = document.getElementById("adminUsersTableBody");
-  const logoutBtn = document.getElementById("logoutBtn");
-
-  if (usersTable) {
-    usersTable.addEventListener("click", async (event) => {
-      const button = event.target.closest("[data-action='toggle-role']");
-      if (!button) return;
-
-      const uuid = button.dataset.uuid;
-      if (!uuid) return;
-
-      try {
-        await toggleUserRole(uuid);
-      } catch (error) {
-        alert(error.message || "No se pudo actualizar el rol");
-      }
-    });
+async function getAllLeads() {
+  if (!NOCODB_TOKEN || !NOCODB_LEADS_URL) {
+    return [];
   }
 
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", async (event) => {
-      event.preventDefault();
+  const separator = NOCODB_LEADS_URL.includes("?") ? "&" : "?";
+  const url = `${NOCODB_LEADS_URL}${separator}limit=1000`;
 
-      try {
-        await apiFetch("/api/logout", { method: "POST" });
-      } catch {
-        // ignore
-      } finally {
-        window.location.href = "/login.html";
+  const result = await ncdbFetch(url, { method: "GET" });
+  return extractRecords(result).map(flattenRecord);
+}
+
+async function updateUserRoleInNoco(uuid, role) {
+  requireUsersConfig();
+
+  const users = await getAllUsers();
+  const target = users.find((u) => u.uuid === uuid);
+
+  if (!target) {
+    throw new Error("Usuario no encontrado");
+  }
+
+  const recordId = target.nocodb_record_id || target.Id || target.id;
+  if (!recordId) {
+    throw new Error("No se encontró el record id del usuario");
+  }
+
+  const baseUrl = NOCODB_USERS_URL.replace(/\/$/, "");
+  const updateUrl = `${baseUrl}/${recordId}`;
+
+  const result = await ncdbFetch(updateUrl, {
+    method: "PATCH",
+    body: JSON.stringify({
+      fields: {
+        role
       }
-    });
+    })
+  });
+
+  return flattenRecord(result);
+}
+
+function inferUserSegment(interest) {
+  switch (interest) {
+    case "ai_systems":
+      return "ai_interest";
+    case "editorial":
+      return "editorial_interest";
+    case "ecommerce":
+      return "ecommerce_interest";
+    case "branding":
+    case "marketing":
+      return "marketing_leads";
+    default:
+      return "newsletter_only";
   }
 }
 
-async function refreshAdminData() {
-  const [users, leads] = await Promise.all([
-    loadUsers(),
-    loadLeads()
-  ]);
-
-  renderUsersTable(users);
-  renderLeadsTable(leads);
-  buildStats();
+function inferLeadSegment(projectType) {
+  switch (projectType) {
+    case "ia":
+      return "ai_interest";
+    case "ecommerce":
+      return "ecommerce_interest";
+    case "web":
+      return "marketing_leads";
+    default:
+      return "high_intent";
+  }
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+/* =========================
+   STATIC ROUTES
+========================= */
+
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/index.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/login.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "login.html"));
+});
+
+app.get("/register.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "register.html"));
+});
+
+app.get("/logout.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "logout.html"));
+});
+
+app.get("/panel.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "panel.html"));
+});
+
+app.get("/admin.html", (_req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
+});
+
+/* =========================
+   HEALTH
+========================= */
+
+app.get("/api/health", (_req, res) => {
+  res.json({
+    success: true,
+    status: "ok",
+    environment: NODE_ENV
+  });
+});
+
+/* =========================
+   AUTH API
+========================= */
+
+app.post("/api/register", async (req, res) => {
   try {
-    await loadSession();
-    bindEvents();
-    await refreshAdminData();
-  } catch (_error) {
-    window.location.href = "/login.html";
+    const payload = req.body || {};
+
+    const requiredFields = [
+      "first_name",
+      "last_name",
+      "email",
+      "city",
+      "phone",
+      "password",
+      "interest",
+      "newsletter_consent",
+      "data_consent"
+    ];
+
+    for (const field of requiredFields) {
+      if (
+        payload[field] === undefined ||
+        payload[field] === null ||
+        payload[field] === ""
+      ) {
+        return res.status(400).json({
+          success: false,
+          message: `Falta el campo obligatorio: ${field}`
+        });
+      }
+    }
+
+    if (String(payload.password).length < 6) {
+      return res.status(400).json({
+        success: false,
+        message: "La contraseña debe tener al menos 6 caracteres"
+      });
+    }
+
+    const email = normalizeEmail(payload.email);
+    const users = await getAllUsers();
+
+    const existingUser = users.find(
+      (u) => normalizeEmail(u.email) === email
+    );
+
+    if (existingUser) {
+      return res.status(409).json({
+        success: false,
+        message: "Ya existe una cuenta con ese email"
+      });
+    }
+
+    const password_hash = await bcrypt.hash(String(payload.password), 10);
+    const firstName = String(payload.first_name).trim();
+    const lastName = String(payload.last_name).trim();
+
+    const newUser = {
+      uuid: crypto.randomUUID(),
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`.trim(),
+      email,
+      city: String(payload.city).trim(),
+      country: String(payload.country || "").trim(),
+      phone: String(payload.phone).trim(),
+      company: String(payload.company || "").trim(),
+      role_title: String(payload.role || "").trim(),
+      interest: String(payload.interest).trim(),
+      profile: String(payload.profile || "").trim(),
+      newsletter_consent: Boolean(payload.newsletter_consent),
+      data_consent: Boolean(payload.data_consent),
+      password_hash,
+      role: "member",
+      status: "active",
+      source: "register_form",
+      segment: inferUserSegment(String(payload.interest).trim()),
+      last_login_at: null
+    };
+
+    const createdUser = await createUserRecord(newUser);
+    const token = createToken(createdUser);
+
+    setAuthCookie(res, token);
+
+    return res.status(201).json({
+      success: true,
+      message: "Cuenta creada correctamente",
+      user: sanitizeUser(createdUser)
+    });
+  } catch (error) {
+    console.error("Error en /api/register:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error interno al registrar usuario"
+    });
   }
+});
+
+app.post("/api/login", async (req, res) => {
+  try {
+    const { email, password } = req.body || {};
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email y contraseña son obligatorios"
+      });
+    }
+
+    const users = await getAllUsers();
+    const user = users.find(
+      (u) => normalizeEmail(u.email) === normalizeEmail(email)
+    );
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "Credenciales inválidas"
+      });
+    }
+
+    const hash = user.password_hash || user.passwordHash;
+
+    if (!hash) {
+      return res.status(401).json({
+        success: false,
+        message: "El usuario no tiene contraseña válida"
+      });
+    }
+
+    const isValidPassword = await bcrypt.compare(String(password), hash);
+
+    if (!isValidPassword) {
+      return res.status(401).json({
+        success: false,
+        message: "Credenciales inválidas"
+      });
+    }
+
+    const token = createToken(user);
+
+    setAuthCookie(res, token);
+
+    return res.json({
+      success: true,
+      message: "Login correcto",
+      user: sanitizeUser(user)
+    });
+  } catch (error) {
+    console.error("Error en /api/login:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error interno al iniciar sesión"
+    });
+  }
+});
+
+app.get("/api/me", authMiddleware, async (req, res) => {
+  try {
+    const dbUser = await getUserByUuid(req.user.sub);
+
+    if (!dbUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado"
+      });
+    }
+
+    return res.json({
+      success: true,
+      user: {
+        uuid: dbUser.uuid,
+        email: dbUser.email,
+        role: dbUser.role || "member",
+        first_name: dbUser.first_name || "",
+        last_name: dbUser.last_name || "",
+        full_name: dbUser.full_name || "",
+        city: dbUser.city || "",
+        country: dbUser.country || "",
+        phone: dbUser.phone || "",
+        company: dbUser.company || "",
+        role_title: dbUser.role_title || "",
+        interest: dbUser.interest || "",
+        profile: dbUser.profile || "",
+        newsletter_consent: Boolean(dbUser.newsletter_consent),
+        data_consent: Boolean(dbUser.data_consent),
+        status: dbUser.status || "active",
+        source: dbUser.source || "register_form",
+        segment: dbUser.segment || "newsletter_only"
+      }
+    });
+  } catch (error) {
+    console.error("Error en /api/me:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error interno obteniendo sesión"
+    });
+  }
+});
+
+app.post("/api/logout", (_req, res) => {
+  clearAuthCookie(res);
+
+  return res.json({
+    success: true,
+    message: "Sesión cerrada"
+  });
+});
+
+/* =========================
+   LEADS API
+========================= */
+
+app.post("/api/lead", async (req, res) => {
+  try {
+    const payload = req.body || {};
+
+    const requiredFields = ["name", "email", "project_type", "budget", "message"];
+
+    for (const field of requiredFields) {
+      if (!payload[field]) {
+        return res.status(400).json({
+          success: false,
+          message: `Falta el campo obligatorio: ${field}`
+        });
+      }
+    }
+
+    const leadPayload = {
+      name: String(payload.name).trim(),
+      email: normalizeEmail(payload.email),
+      company: String(payload.company || "").trim(),
+      project_type: String(payload.project_type).trim(),
+      budget: String(payload.budget).trim(),
+      message: String(payload.message).trim(),
+      source: String(payload.source || "website_contact").trim(),
+      page: String(payload.page || "").trim(),
+      user_agent: String(payload.user_agent || "").trim(),
+      created_at: String(payload.created_at || new Date().toISOString()).trim(),
+      stage: "new",
+      segment: inferLeadSegment(String(payload.project_type).trim())
+    };
+
+    let n8nResult = null;
+    let nocodbResult = null;
+
+    if (N8N_LEAD_WEBHOOK) {
+      const response = await fetch(N8N_LEAD_WEBHOOK, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(N8N_API_KEY ? { "x-api-key": N8N_API_KEY } : {})
+        },
+        body: JSON.stringify(leadPayload)
+      });
+
+      const contentType = response.headers.get("content-type") || "";
+      n8nResult = contentType.includes("application/json")
+        ? await response.json()
+        : await response.text();
+
+      if (!response.ok) {
+        throw new Error(
+          typeof n8nResult === "object" && n8nResult !== null
+            ? n8nResult.message || JSON.stringify(n8nResult)
+            : String(n8nResult)
+        );
+      }
+    }
+
+    if (NOCODB_LEADS_URL) {
+      nocodbResult = await createLeadRecord(leadPayload);
+    }
+
+    return res.status(201).json({
+      success: true,
+      message: "Lead enviado correctamente",
+      lead: nocodbResult || leadPayload,
+      relay: n8nResult
+    });
+  } catch (error) {
+    console.error("Error en /api/lead:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Error interno enviando el lead"
+    });
+  }
+});
+
+/* =========================
+   ADMIN API
+========================= */
+
+app.get("/api/admin/users", authMiddleware, requireAdmin, async (_req, res) => {
+  try {
+    const users = await getAllUsers();
+
+    return res.json({
+      success: true,
+      users: users.map((user) => sanitizeUser(user))
+    });
+  } catch (error) {
+    console.error("Error en /api/admin/users:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "No se pudieron obtener los usuarios"
+    });
+  }
+});
+
+app.get("/api/admin/leads", authMiddleware, requireAdmin, async (_req, res) => {
+  try {
+    const leads = await getAllLeads();
+
+    return res.json({
+      success: true,
+      leads
+    });
+  } catch (error) {
+    console.error("Error en /api/admin/leads:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "No se pudieron obtener los leads"
+    });
+  }
+});
+
+app.patch("/api/admin/users/:uuid/role", authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { uuid } = req.params;
+    const { role } = req.body || {};
+
+    const allowedRoles = ["admin", "member"];
+    if (!allowedRoles.includes(String(role || "").toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: "Rol inválido"
+      });
+    }
+
+    const updatedUser = await updateUserRoleInNoco(uuid, String(role).toLowerCase());
+
+    return res.json({
+      success: true,
+      message: "Rol actualizado correctamente",
+      user: sanitizeUser(updatedUser)
+    });
+  } catch (error) {
+    console.error("Error en /api/admin/users/:uuid/role:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "No se pudo actualizar el rol"
+    });
+  }
+});
+
+/* =========================
+   START
+========================= */
+
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en http://127.0.0.1:${PORT}`);
 });

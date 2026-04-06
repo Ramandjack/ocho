@@ -44,13 +44,15 @@ async function getCurrentUser() {
 async function requireAuth() {
   try {
     const result = await getCurrentUser();
+    const user = result.user;
+
     document.documentElement.setAttribute("data-auth", "true");
 
     const authName = document.getElementById("authUserName");
     const authEmail = document.getElementById("authUserEmail");
 
-    if (authName && result?.user) {
-      const fullName = [result.user.first_name, result.user.last_name]
+    if (authName) {
+      const fullName = [user.first_name, user.last_name]
         .filter(Boolean)
         .join(" ")
         .trim();
@@ -58,12 +60,23 @@ async function requireAuth() {
       authName.textContent = fullName || "Usuario";
     }
 
-    if (authEmail && result?.user?.email) {
-      authEmail.textContent = result.user.email;
+    if (authEmail) {
+      authEmail.textContent = user.email;
     }
 
-    return result.user;
-  } catch (_error) {
+    const requiredRole = document.body.dataset.roleRequired;
+
+    if (requiredRole) {
+      const userRole = (user.role || "").toLowerCase();
+
+      if (userRole !== requiredRole.toLowerCase()) {
+        window.location.href = "/panel.html";
+        return null;
+      }
+    }
+
+    return user;
+  } catch (error) {
     window.location.href = "/login.html";
     return null;
   }
@@ -73,7 +86,7 @@ async function logoutAndRedirect() {
   try {
     await apiFetch("/api/logout", { method: "POST" });
   } catch (_error) {
-    // nada
+    // ignorar error de logout
   } finally {
     window.location.href = "/login.html";
   }

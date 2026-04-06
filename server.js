@@ -71,6 +71,13 @@ function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
 }
 
+function normalizeRole(role) {
+  if (Array.isArray(role)) {
+    return String(role[0] || "").trim().toLowerCase();
+  }
+  return String(role || "").trim().toLowerCase();
+}
+
 function sanitizeUser(user) {
   const safeUser = { ...user };
   delete safeUser.password_hash;
@@ -83,7 +90,7 @@ function createToken(user) {
     {
       sub: user.uuid,
       email: user.email,
-      role: user.role || "member",
+      role: normalizeRole(user.role) || "member",
       first_name: user.first_name || "",
       last_name: user.last_name || "",
       full_name: user.full_name || "",
@@ -150,24 +157,6 @@ function authMiddleware(req, res, next) {
   }
 }
 
-function requireAdmin(req, res, next) {
-  if (!req.user) {
-    return res.status(401).json({
-      success: false,
-      message: "No autenticado"
-    });
-  }
-
-  if (String(req.user.role || "").toLowerCase() !== "admin") {
-    return res.status(403).json({
-      success: false,
-      message: "No autorizado"
-    });
-  }
-
-  next();
-}
-
 function requireUsersConfig() {
   if (!NOCODB_TOKEN || !NOCODB_USERS_URL) {
     throw new Error("Faltan NOCODB_TOKEN o NOCODB_USERS_URL en .env");
@@ -232,6 +221,47 @@ async function getAllUsers() {
 async function getUserByUuid(uuid) {
   const users = await getAllUsers();
   return users.find((u) => u.uuid === uuid) || null;
+}
+
+async function requireAdmin(req, res, next) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "No autenticado"
+      });
+    }
+
+    const dbUser = await getUserByUuid(req.user.sub);
+
+    if (!dbUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado"
+      });
+    }
+
+    if (normalizeRole(dbUser.role) !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "No autorizado"
+      });
+    }
+
+    req.user = {
+      ...req.user,
+      ...dbUser,
+      role: normalizeRole(dbUser.role) || req.user.role || "member"
+    };
+
+    next();
+  } catch (error) {
+    console.error("Error en requireAdmin:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error validando permisos de administrador"
+    });
+  }
 }
 
 async function createUserRecord(payload) {
@@ -558,7 +588,7 @@ app.get("/api/me", authMiddleware, async (req, res) => {
       user: {
         uuid: dbUser.uuid,
         email: dbUser.email,
-        role: dbUser.role || "member",
+        role: normalizeRole(dbUser.role) || "member",
         first_name: dbUser.first_name || "",
         last_name: dbUser.last_name || "",
         full_name: dbUser.full_name || "",

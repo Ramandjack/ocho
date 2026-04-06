@@ -34,7 +34,7 @@ async function apiFetch(url, options = {}) {
 }
 
 /* =========================
-   SESSION
+   SESSION HELPERS
 ========================= */
 
 async function getCurrentUser() {
@@ -43,13 +43,8 @@ async function getCurrentUser() {
 
 async function requireAuth() {
   try {
-    document.body.classList.add("auth-loading");
-
     const result = await getCurrentUser();
-
     document.documentElement.setAttribute("data-auth", "true");
-    document.body.classList.remove("auth-loading");
-    document.body.classList.add("auth-ready");
 
     const authName = document.getElementById("authUserName");
     const authEmail = document.getElementById("authUserEmail");
@@ -78,7 +73,7 @@ async function logoutAndRedirect() {
   try {
     await apiFetch("/api/logout", { method: "POST" });
   } catch (_error) {
-    // ignore
+    // nada
   } finally {
     window.location.href = "/login.html";
   }
@@ -118,7 +113,6 @@ if (registerForm) {
       });
 
       setStatus("Cuenta creada correctamente. Redirigiendo...", "success");
-
       setTimeout(() => {
         window.location.href = "/panel.html";
       }, 900);
@@ -152,8 +146,18 @@ if (loginForm) {
 
       setStatus("Login correcto. Redirigiendo...", "success");
 
-      setTimeout(() => {
-        window.location.href = "/panel.html";
+      setTimeout(async () => {
+        try {
+          const currentUser = await getCurrentUser();
+
+          if ((currentUser?.user?.role || "").toLowerCase() === "admin") {
+            window.location.href = "/admin.html";
+          } else {
+            window.location.href = "/panel.html";
+          }
+        } catch {
+          window.location.href = "/panel.html";
+        }
       }, 700);
     } catch (error) {
       setStatus(error.message || "No se pudo iniciar sesión", "error");
@@ -172,6 +176,10 @@ if (document.body?.dataset?.protected === "true") {
 /* =========================
    LOGOUT
 ========================= */
+
+if (window.location.pathname.endsWith("/logout.html")) {
+  logoutAndRedirect();
+}
 
 const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {

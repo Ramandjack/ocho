@@ -229,6 +229,11 @@ async function getAllUsers() {
   return extractRecords(result).map(flattenRecord);
 }
 
+async function getUserByUuid(uuid) {
+  const users = await getAllUsers();
+  return users.find((u) => u.uuid === uuid) || null;
+}
+
 async function createUserRecord(payload) {
   requireUsersConfig();
 
@@ -539,27 +544,36 @@ app.post("/api/login", async (req, res) => {
 
 app.get("/api/me", authMiddleware, async (req, res) => {
   try {
+    const dbUser = await getUserByUuid(req.user.sub);
+
+    if (!dbUser) {
+      return res.status(404).json({
+        success: false,
+        message: "Usuario no encontrado"
+      });
+    }
+
     return res.json({
       success: true,
       user: {
-        uuid: req.user.sub,
-        email: req.user.email,
-        role: req.user.role,
-        first_name: req.user.first_name || "",
-        last_name: req.user.last_name || "",
-        full_name: req.user.full_name || "",
-        city: req.user.city || "",
-        country: req.user.country || "",
-        phone: req.user.phone || "",
-        company: req.user.company || "",
-        role_title: req.user.role_title || "",
-        interest: req.user.interest || "",
-        profile: req.user.profile || "",
-        newsletter_consent: Boolean(req.user.newsletter_consent),
-        data_consent: Boolean(req.user.data_consent),
-        status: req.user.status || "active",
-        source: req.user.source || "register_form",
-        segment: req.user.segment || "newsletter_only"
+        uuid: dbUser.uuid,
+        email: dbUser.email,
+        role: dbUser.role || "member",
+        first_name: dbUser.first_name || "",
+        last_name: dbUser.last_name || "",
+        full_name: dbUser.full_name || "",
+        city: dbUser.city || "",
+        country: dbUser.country || "",
+        phone: dbUser.phone || "",
+        company: dbUser.company || "",
+        role_title: dbUser.role_title || "",
+        interest: dbUser.interest || "",
+        profile: dbUser.profile || "",
+        newsletter_consent: Boolean(dbUser.newsletter_consent),
+        data_consent: Boolean(dbUser.data_consent),
+        status: dbUser.status || "active",
+        source: dbUser.source || "register_form",
+        segment: dbUser.segment || "newsletter_only"
       }
     });
   } catch (error) {

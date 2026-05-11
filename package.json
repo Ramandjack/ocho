@@ -4,7 +4,14 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev:server": "node server.js",
+    "dev:client": "npm run dev --prefix client",
+    "client:dev": "npm run dev --prefix client",
+    "client:install": "npm install --prefix client",
+    "client:build": "npm run build --prefix client",
+    "build": "npm run client:build",
+    "preview:client": "npm run preview --prefix client"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

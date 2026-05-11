@@ -1,0 +1,67 @@
+---
+description: OCHO — React, Vite, Node, SaaS, UI premium, seguridad y trabajo del agente
+alwaysApply: true
+---
+
+# OCHO — Reglas del proyecto
+
+## React
+
+- Componentes funcionales y hooks; evitar clases salvo integración legacy.
+- Estado local cuando baste; estado compartido con criterio claro (contexto ligero o librería acordada en el repo).
+- Props tipadas o documentadas; nombres explícitos (`isLoading`, `onSubmit`).
+- Efectos con dependencias correctas; no suprimir avisos de exhaustive-deps sin razón.
+- Dividir vistas grandes en subcomponentes; colocar lógica de datos en hooks o capa de servicios, no mezclada en JSX profundo.
+
+## Vite
+
+- Respetar la estructura de `client/src/`, alias si existen en `client/vite.config`, y variables `import.meta.env` (nunca secretos en cliente).
+- `base` del proyecto: `/app/`; no cambiar rutas base sin coordinar Express y enlaces.
+- Code splitting por rutas o módulos pesados cuando aporte valor.
+- Build y preview para validar producción antes de cambios grandes de assets o rutas base.
+
+## Node.js (Express / API)
+
+- `type: "module"`, ES modules, Node >= 18 según `engines` en `package.json`.
+- Punto de entrada: `server.js` en la raíz del paquete `ocho/`.
+- Middleware ordenado: CORS, parsers, auth, rutas; errores centralizados cuando exista patrón en el repo.
+- Async/await con manejo de errores; no silenciar fallos de red o de base de datos.
+- Variables de entorno para configuración; valores por defecto solo para desarrollo local, nunca secretos reales en código.
+
+## Arquitectura SaaS
+
+- Separar: presentación, API, persistencia (NocoDB u otros) y automatizaciones (webhooks).
+- Multi-tenant o módulos por usuario: respetar el modelo de datos y rutas existentes; no asumir un solo cliente.
+- Rutas y contratos API estables; versionar o deprecar en lugar de romper clientes sin aviso.
+
+## Componentes reutilizables
+
+- Un componente = una responsabilidad clara; extraer patrones repetidos (botones, inputs, cards, layouts).
+- API de props mínima y predecible; estilos y variantes coherentes con el sistema visual del proyecto.
+- Evitar copiar-pegar bloques grandes; unificar en componente o utilidad compartida.
+
+## Seguridad básica
+
+- No exponer `JWT_SECRET`, tokens NocoDB, claves n8n ni `.env` en commits, logs ni frontend.
+- Validar y sanitizar entrada en servidor; CORS y cookies acordes a producción (`Secure`, `HttpOnly`, `SameSite` cuando aplique).
+- Contraseñas con hash (p. ej. bcrypt); JWT con expiración según lo ya implementado.
+- Principio de mínimo privilegio en llamadas a APIs externas y URLs de NocoDB.
+
+## No romper funcionalidades existentes
+
+- Antes de cambiar comportamiento, localizar flujos afectados (auth, panel `/app/*`, webhooks, notificaciones).
+- Mantener compatibilidad de API y de HTML/JS público en `assets/`, `en/`, `nl/` salvo refactor acordado explícitamente.
+- Probar manualmente los caminos críticos tras tocar auth, cookies, CORS o datos de usuario.
+
+## Cambios en varios archivos
+
+- Antes de editar **más de un archivo** en una misma tarea, resumir en breve: objetivo, archivos previstos y riesgos.
+- Preferir cambios incrementales y revisables; evitar refactors masivos no solicitados.
+
+## Estilo visual — premium minimalista (referencia Stripe)
+
+- Mucho espacio en blanco, jerarquía tipográfica clara, pesos y tamaños consistentes.
+- Paleta reducida (neutros + uno o dos acentos); bordes sutiles y sombras suaves, sin ruido decorativo.
+- Estados hover/focus/disabled visibles y accesibles; contraste suficiente en texto.
+- Formularios y tablas limpios, alineación precisa, micro-interacciones discretas (transiciones cortas).
+- Evitar gradientes llamativos, múltiples fuentes decorativas o estética genérica “startup”; buscar sobriedad y pulido.

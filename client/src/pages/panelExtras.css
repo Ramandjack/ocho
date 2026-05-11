@@ -1,0 +1,25 @@
+.member-badge {
+  display: inline-block;
+  padding: 0.2em 0.55em;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid rgba(15, 15, 15, 0.12);
+  margin-right: 0.35rem;
+}
+
+.member-badge.admin {
+  border-color: rgba(15, 15, 15, 0.35);
+  font-weight: 600;
+}
+
+.consent-line {
+  margin: 0.35rem 0;
+}
+
+.consent-line.ok {
+  color: #137a39;
+}
+
+.consent-line.no {
+  color: #666;
+}

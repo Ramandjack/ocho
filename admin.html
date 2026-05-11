@@ -4,479 +4,240 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin Console — OCHO</title>
-  <meta
-    name="description"
-    content="Centro de control administrativo de OCHO para gestionar usuarios, contenido, seguridad y operaciones."
-  />
+  <meta name="description" content="Centro de control administrativo de OCHO." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet"
-  />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <link rel="icon" href="/assets/img/favicon/favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="/assets/img/favicon/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/assets/img/favicon/favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="/assets/img/favicon/favicon-32x32.png" />
-
   <link rel="stylesheet" href="/assets/css/styles.css" />
   <link rel="stylesheet" href="/assets/css/components.css" />
   <link rel="stylesheet" href="/assets/css/pages.css" />
 
   <style>
     :root {
-      --admin-border: rgba(255,255,255,0.08);
-      --admin-soft: rgba(255,255,255,0.04);
-      --admin-soft-2: rgba(255,255,255,0.06);
-      --admin-accent: rgba(255,255,255,0.88);
-      --admin-muted: rgba(255,255,255,0.62);
-      --admin-danger: #ff6b6b;
-      --admin-success: #7dd3a7;
-      --admin-warning: #ffd36b;
+      --ab: rgba(255,255,255,0.08);
+      --as: rgba(255,255,255,0.04);
+      --as2: rgba(255,255,255,0.06);
+      --aa: rgba(255,255,255,0.88);
+      --am: rgba(255,255,255,0.55);
+      --ad: #ff6b6b;
+      --aok: #7dd3a7;
+      --aw: #ffd36b;
     }
-
-    .admin-body {
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at top left, rgba(255,255,255,0.05), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(255,255,255,0.03), transparent 24%),
-        #050505;
-      color: #fff;
+    @keyframes fadeInUp {
+      from { opacity:0; transform:translateY(10px); }
+      to   { opacity:1; transform:translateY(0); }
     }
-
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body.admin-body {
+      min-height:100vh;
+      background:#050505;
+      color:#fff;
+      font-family:'Inter',sans-serif;
+    }
     .admin-layout {
-      display: grid;
-      grid-template-columns: 280px 1fr;
-      min-height: 100vh;
+      display:grid;
+      grid-template-columns:260px 1fr;
+      min-height:100vh;
     }
-
+    /* SIDEBAR */
     .admin-sidebar {
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      border-right: 1px solid var(--admin-border);
-      background: rgba(7, 7, 7, 0.92);
-      backdrop-filter: blur(14px);
-      padding: 28px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 22px;
+      position:sticky; top:0; height:100vh; overflow-y:auto;
+      border-right:1px solid var(--ab);
+      background:rgba(6,6,6,0.96);
+      backdrop-filter:blur(14px);
+      padding:24px 16px;
+      display:flex; flex-direction:column; gap:20px;
     }
-
     .admin-brand {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      padding-bottom: 18px;
-      border-bottom: 1px solid var(--admin-border);
+      display:flex; justify-content:space-between; align-items:center;
+      padding-bottom:16px; border-bottom:1px solid var(--ab);
     }
-
-    .admin-brand-word {
-      font-size: 1.2rem;
-      letter-spacing: 0.32em;
-      font-weight: 800;
-    }
-
+    .admin-brand-word { font-size:1.1rem; letter-spacing:.32em; font-weight:800; }
     .admin-role-badge {
-      border: 1px solid var(--admin-border);
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-size: 0.74rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--admin-accent);
-      background: var(--admin-soft);
+      border:1px solid var(--ab); padding:6px 10px; border-radius:999px;
+      font-size:.72rem; letter-spacing:.12em; text-transform:uppercase;
+      color:var(--aa); background:var(--as);
     }
-
-    .admin-nav-group {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
+    .admin-nav-group { display:flex; flex-direction:column; gap:6px; }
     .admin-nav-label {
-      font-size: 0.76rem;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--admin-muted);
-      margin-bottom: 6px;
+      font-size:.72rem; letter-spacing:.16em; text-transform:uppercase;
+      color:var(--am); margin-bottom:4px; padding-left:12px;
     }
-
     .admin-nav a {
-      color: rgba(255,255,255,0.82);
-      text-decoration: none;
-      border: 1px solid transparent;
-      background: transparent;
-      padding: 12px 14px;
-      border-radius: 14px;
-      transition: all .2s ease;
-      display: block;
+      color:rgba(255,255,255,.75); text-decoration:none;
+      border:1px solid transparent; background:transparent;
+      padding:10px 12px; border-radius:12px; font-size:.9rem;
+      transition:all .18s ease; display:block;
     }
-
-    .admin-nav a:hover,
-    .admin-nav a.active {
-      background: var(--admin-soft);
-      border-color: var(--admin-border);
-      color: #fff;
+    .admin-nav a:hover, .admin-nav a.active {
+      background:var(--as); border-color:var(--ab); color:#fff;
     }
-
-    .admin-sidebar-footer {
-      margin-top: auto;
-      display: grid;
-      gap: 10px;
-    }
-
-    .admin-main {
-      min-width: 0;
-      padding: 28px;
-    }
-
-    .admin-topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      gap: 18px;
-      margin-bottom: 26px;
-      border-bottom: 1px solid var(--admin-border);
-      padding-bottom: 22px;
-    }
-
-    .admin-topbar h1 {
-      font-size: clamp(2rem, 4vw, 3.5rem);
-      line-height: 0.95;
-      letter-spacing: -0.04em;
-      margin: 0 0 12px;
-    }
-
-    .admin-topbar p {
-      margin: 0;
-      color: var(--admin-muted);
-      max-width: 760px;
-      font-size: 1.02rem;
-    }
-
-    .admin-top-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .admin-btn {
-      appearance: none;
-      border: 1px solid var(--admin-border);
-      background: var(--admin-soft);
-      color: #fff;
-      padding: 12px 16px;
-      border-radius: 14px;
-      font: inherit;
-      cursor: pointer;
-      transition: all .2s ease;
-      text-decoration: none;
-    }
-
-    .admin-btn:hover {
-      background: var(--admin-soft-2);
-      transform: translateY(-1px);
-    }
-
-    .admin-btn.primary {
-      background: #fff;
-      color: #050505;
-      border-color: #fff;
-    }
-
-    .admin-btn.primary:hover {
-      background: rgba(255,255,255,0.9);
-    }
-
-    .admin-btn.danger {
-      border-color: rgba(255,107,107,0.28);
-      color: #ffd8d8;
-      background: rgba(255,107,107,0.08);
-    }
-
-    .admin-grid {
-      display: grid;
-      gap: 18px;
-    }
-
-    .admin-grid.stats {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      margin-bottom: 26px;
-    }
-
-    .admin-card {
-      border: 1px solid var(--admin-border);
-      background: rgba(255,255,255,0.03);
-      border-radius: 24px;
-      padding: 22px;
-      box-shadow: 0 18px 40px rgba(0,0,0,0.18);
-    }
-
-    .admin-stat-label {
-      font-size: 0.78rem;
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--admin-muted);
-      margin-bottom: 10px;
-    }
-
-    .admin-stat-value {
-      font-size: clamp(1.8rem, 3vw, 2.6rem);
-      font-weight: 800;
-      line-height: 1;
-      margin-bottom: 8px;
-    }
-
-    .admin-stat-meta {
-      color: var(--admin-muted);
-      font-size: 0.92rem;
-    }
-
-    .admin-sections {
-      display: grid;
-      grid-template-columns: 1.25fr 1fr;
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-
-    .admin-card h2 {
-      margin: 0 0 18px;
-      font-size: 1.1rem;
-      letter-spacing: -0.03em;
-    }
-
-    .admin-table-wrap {
-      overflow-x: auto;
-      border-radius: 18px;
-      border: 1px solid var(--admin-border);
-    }
-
-    .admin-table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 760px;
-    }
-
-    .admin-table th,
-    .admin-table td {
-      text-align: left;
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--admin-border);
-      font-size: 0.95rem;
-      vertical-align: middle;
-    }
-
-    .admin-table th {
-      color: var(--admin-muted);
-      font-size: 0.8rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .admin-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      border: 1px solid var(--admin-border);
-      border-radius: 999px;
-      padding: 7px 10px;
-      font-size: 0.8rem;
-      background: var(--admin-soft);
-    }
-
-    .admin-pill.success { color: var(--admin-success); }
-    .admin-pill.warning { color: var(--admin-warning); }
-    .admin-pill.danger { color: var(--admin-danger); }
-
-    .admin-list {
-      display: grid;
-      gap: 12px;
-    }
-
-    .admin-list-item {
-      border: 1px solid var(--admin-border);
-      border-radius: 18px;
-      padding: 16px;
-      display: grid;
-      gap: 8px;
-      background: rgba(255,255,255,0.02);
-    }
-
-    .admin-list-item strong {
-      font-size: 0.96rem;
-    }
-
-    .admin-list-item p {
-      margin: 0;
-      color: var(--admin-muted);
-      font-size: 0.92rem;
-    }
-
-    .admin-kpis {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-      margin-bottom: 18px;
-    }
-
-    .admin-full {
-      margin-bottom: 18px;
-    }
-
-    .admin-controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .admin-control {
-      border: 1px solid var(--admin-border);
-      background: rgba(255,255,255,0.02);
-      color: #fff;
-      border-radius: 12px;
-      padding: 12px 14px;
-      font: inherit;
-      min-width: 180px;
-    }
-
-    .admin-chat-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 18px;
-    }
-
-    .admin-chat-thread {
-      display: grid;
-      gap: 12px;
-    }
-
-    .admin-message {
-      border: 1px solid var(--admin-border);
-      border-radius: 18px;
-      padding: 14px 16px;
-      background: rgba(255,255,255,0.025);
-    }
-
-    .admin-message small {
-      display: block;
-      color: var(--admin-muted);
-      margin-bottom: 6px;
-    }
-
-    .admin-system-grid {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 18px;
-    }
-
-    .admin-config-list {
-      display: grid;
-      gap: 10px;
-    }
-
-    .admin-config-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      border-bottom: 1px solid var(--admin-border);
-      padding-bottom: 10px;
-    }
-
-    .admin-config-row:last-child {
-      border-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .admin-switch {
-      width: 48px;
-      height: 28px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.12);
-      position: relative;
-      border: 1px solid var(--admin-border);
-    }
-
-    .admin-switch::after {
-      content: "";
-      position: absolute;
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: #fff;
-      top: 3px;
-      left: 24px;
-    }
-
-    .admin-muted {
-      color: var(--admin-muted);
-    }
-
+    .admin-sidebar-footer { margin-top:auto; display:grid; gap:8px; }
     .admin-user-box {
-      border-top: 1px solid var(--admin-border);
-      padding-top: 16px;
-      display: grid;
-      gap: 6px;
+      border-top:1px solid var(--ab); padding-top:14px; display:grid; gap:5px;
     }
+    .admin-user-box strong { font-size:.95rem; }
+    .admin-user-box span { color:var(--am); font-size:.84rem; }
 
-    .admin-user-box strong {
-      font-size: 1rem;
+    /* LOADING BAR */
+    #adminLoadingBar {
+      position:fixed; top:0; left:0; right:0; height:2px;
+      background:linear-gradient(90deg, transparent, #fff, transparent);
+      animation:shimmer 1s linear infinite; display:none; z-index:500;
     }
+    @keyframes shimmer { from{transform:translateX(-100%)} to{transform:translateX(200%)} }
 
-    .admin-user-box span {
-      color: var(--admin-muted);
-      font-size: 0.9rem;
+    /* MAIN */
+    .admin-main { min-width:0; padding:24px 28px; }
+    .admin-topbar {
+      display:flex; justify-content:space-between; align-items:flex-start;
+      gap:16px; margin-bottom:24px; border-bottom:1px solid var(--ab); padding-bottom:20px;
     }
+    .admin-topbar h1 { font-size:clamp(1.8rem,3.5vw,3rem); line-height:.95; letter-spacing:-.04em; margin-bottom:10px; }
+    .admin-topbar p { color:var(--am); font-size:.98rem; max-width:680px; }
+    .admin-top-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:flex-start; }
 
-    @media (max-width: 1180px) {
-      .admin-grid.stats,
-      .admin-kpis,
-      .admin-system-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-      }
-
-      .admin-sections,
-      .admin-chat-grid {
-        grid-template-columns: 1fr;
-      }
+    /* CARDS */
+    .admin-card {
+      border:1px solid var(--ab); background:rgba(255,255,255,.03);
+      border-radius:20px; padding:20px;
     }
+    .admin-card h2 { margin:0 0 16px; font-size:1rem; letter-spacing:-.02em; }
+    .admin-grid { display:grid; gap:16px; }
+    .admin-grid.stats { grid-template-columns:repeat(5,minmax(0,1fr)); margin-bottom:22px; }
+    .admin-stat-label { font-size:.75rem; text-transform:uppercase; letter-spacing:.14em; color:var(--am); margin-bottom:8px; }
+    .admin-stat-value { font-size:clamp(1.6rem,2.8vw,2.4rem); font-weight:800; line-height:1; margin-bottom:6px; }
+    .admin-stat-meta { color:var(--am); font-size:.85rem; }
 
-    @media (max-width: 920px) {
-      .admin-layout {
-        grid-template-columns: 1fr;
-      }
+    /* SECTIONS */
+    .admin-sections { display:grid; grid-template-columns:1.4fr 1fr; gap:16px; margin-bottom:16px; }
+    .admin-full { margin-bottom:16px; }
+    .admin-kpis { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin-bottom:16px; }
 
-      .admin-sidebar {
-        position: static;
-        height: auto;
-        border-right: 0;
-        border-bottom: 1px solid var(--admin-border);
-      }
+    /* TABLE */
+    .admin-table-wrap { overflow-x:auto; border-radius:14px; border:1px solid var(--ab); margin-top:12px; }
+    .admin-table { width:100%; border-collapse:collapse; min-width:680px; }
+    .admin-table th, .admin-table td {
+      text-align:left; padding:12px 14px;
+      border-bottom:1px solid var(--ab); font-size:.9rem; vertical-align:middle;
+    }
+    .admin-table th { color:var(--am); font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; background:rgba(255,255,255,.02); }
+    .admin-table tr:last-child td { border-bottom:0; }
 
-      .admin-grid.stats,
-      .admin-kpis,
-      .admin-system-grid {
-        grid-template-columns: 1fr;
-      }
+    /* PILL */
+    .admin-pill {
+      display:inline-flex; align-items:center; gap:6px;
+      border:1px solid var(--ab); border-radius:999px; padding:5px 10px;
+      font-size:.77rem; background:var(--as);
+    }
+    .admin-pill.success { color:var(--aok); }
+    .admin-pill.warning { color:var(--aw); }
+    .admin-pill.danger  { color:var(--ad); }
 
-      .admin-main {
-        padding: 20px;
-      }
+    /* BUTTONS */
+    .admin-btn {
+      appearance:none; border:1px solid var(--ab); background:var(--as);
+      color:#fff; padding:9px 13px; border-radius:12px;
+      font:inherit; font-size:.86rem; cursor:pointer; transition:all .18s ease;
+      text-decoration:none; display:inline-block;
+    }
+    .admin-btn:hover { background:var(--as2); transform:translateY(-1px); }
+    .admin-btn.primary { background:#fff; color:#050505; border-color:#fff; }
+    .admin-btn.primary:hover { background:rgba(255,255,255,.9); }
+    .admin-btn.danger { border-color:rgba(255,107,107,.28); color:#ffd8d8; background:rgba(255,107,107,.08); }
 
-      .admin-topbar {
-        flex-direction: column;
-      }
+    /* CONTROLS */
+    .admin-controls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; align-items:center; }
+    .admin-control {
+      border:1px solid var(--ab); background:rgba(255,255,255,.03);
+      color:#fff; border-radius:10px; padding:9px 12px;
+      font:inherit; font-size:.88rem; min-width:150px;
+    }
+    .admin-control::placeholder { color:var(--am); }
+    .admin-control option { background:#111; color:#fff; }
+
+    /* USER CELL */
+    .user-cell { display:flex; align-items:center; gap:10px; }
+    .user-avatar {
+      width:34px; height:34px; border-radius:50%; flex-shrink:0;
+      background:rgba(255,255,255,.1); border:1px solid var(--ab);
+      display:flex; align-items:center; justify-content:center;
+      font-size:.78rem; font-weight:600; letter-spacing:.04em;
+    }
+    .user-avatar.large { width:52px; height:52px; font-size:1rem; }
+
+    /* LIST */
+    .admin-list { display:grid; gap:10px; }
+    .admin-list-item {
+      border:1px solid var(--ab); border-radius:14px; padding:14px;
+      display:grid; gap:6px; background:rgba(255,255,255,.02);
+    }
+    .admin-list-item strong { font-size:.92rem; }
+    .admin-list-item p { margin:0; color:var(--am); font-size:.88rem; }
+
+    /* SEGMENTS */
+    .segment-row { display:grid; grid-template-columns:110px 1fr 60px; align-items:center; gap:10px; margin-bottom:8px; }
+    .segment-label { font-size:.82rem; color:var(--aa); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .segment-bar-wrap { background:rgba(255,255,255,.08); border-radius:999px; height:5px; overflow:hidden; }
+    .segment-bar { height:5px; background:rgba(255,255,255,.7); border-radius:999px; transition:width .6s ease; }
+    .segment-count { font-size:.78rem; color:var(--am); text-align:right; }
+
+    /* MODAL */
+    .modal-inner { background:rgba(12,12,12,.98); }
+    .modal-header { display:flex; align-items:center; gap:14px; margin-bottom:18px; padding-bottom:16px; border-bottom:1px solid var(--ab); }
+    .modal-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .modal-row { display:grid; gap:4px; border:1px solid var(--ab); border-radius:10px; padding:12px; background:rgba(255,255,255,.02); }
+    .modal-row.full { grid-column:1/-1; }
+    .modal-label { font-size:.74rem; text-transform:uppercase; letter-spacing:.12em; color:var(--am); }
+
+    /* SETTINGS */
+    .admin-system-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+    .admin-config-list { display:grid; gap:8px; }
+    .admin-config-row {
+      display:flex; justify-content:space-between; align-items:center; gap:8px;
+      border-bottom:1px solid var(--ab); padding-bottom:8px; font-size:.9rem;
+    }
+    .admin-config-row:last-child { border-bottom:0; padding-bottom:0; }
+    .admin-switch {
+      width:44px; height:24px; border-radius:999px; background:rgba(255,255,255,.12);
+      position:relative; border:1px solid var(--ab); flex-shrink:0; cursor:pointer;
+    }
+    .admin-switch::after {
+      content:""; position:absolute; width:18px; height:18px; border-radius:50%;
+      background:#fff; top:2px; left:2px; transition:transform .2s;
+    }
+    .admin-switch.on { background:rgba(125,211,167,.3); border-color:var(--aok); }
+    .admin-switch.on::after { transform:translateX(20px); }
+
+    /* RESPONSIVE */
+    @media(max-width:1200px){
+      .admin-grid.stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
+    }
+    @media(max-width:1040px){
+      .admin-sections,.admin-kpis { grid-template-columns:1fr; }
+      .admin-system-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media(max-width:860px){
+      .admin-layout { grid-template-columns:1fr; }
+      .admin-sidebar { position:static; height:auto; border-right:0; border-bottom:1px solid var(--ab); }
+      .admin-grid.stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .admin-system-grid { grid-template-columns:1fr; }
+      .admin-main { padding:16px; }
+      .admin-topbar { flex-direction:column; }
     }
   </style>
 </head>
 <body class="admin-body protected-page" data-protected="true" data-role-required="admin">
+
+  <div id="adminLoadingBar"></div>
+
   <div class="admin-layout">
+
+    <!-- SIDEBAR -->
     <aside class="admin-sidebar">
       <div class="admin-brand">
         <span class="admin-brand-word">OCHO</span>
@@ -488,94 +249,90 @@
           <span class="admin-nav-label">Visión general</span>
           <a href="#overview" class="active">Dashboard</a>
           <a href="#users">Usuarios</a>
-          <a href="#content">Contenidos</a>
-          <a href="#uploads">Archivos</a>
-          <a href="#real-leads">Leads</a>
-          <a href="#chat">Chat</a>
-          <a href="#security">Seguridad</a>
+          <a href="#leads">Leads</a>
           <a href="#analytics">Analítica</a>
+          <a href="#content">Contenidos</a>
+          <a href="#security">Seguridad</a>
           <a href="#settings">Sistema</a>
         </div>
-
         <div class="admin-nav-group">
           <span class="admin-nav-label">Acciones</span>
-          <a href="/panel.html">Volver a panel cliente</a>
+          <a href="/panel.html">← Panel cliente</a>
           <a href="#" id="logoutBtn">Cerrar sesión</a>
         </div>
       </nav>
 
       <div class="admin-user-box">
-        <strong id="adminUserName">Cargando...</strong>
-        <span id="adminUserEmail">Cargando...</span>
+        <strong id="adminUserName">Cargando…</strong>
+        <span id="adminUserEmail"></span>
         <span id="adminUserRole">Rol: administrador</span>
       </div>
     </aside>
 
+    <!-- MAIN -->
     <main class="admin-main">
+
+      <!-- TOPBAR -->
       <section class="admin-topbar" id="overview">
         <div>
           <p class="eyebrow">Admin Console</p>
-          <h1>Centro de control operativo de OCHO.</h1>
-          <p>
-            Interfaz centralizada para gestionar usuarios, seguridad, contenidos, actividad,
-            colaboración y configuración general del sistema.
-          </p>
+          <h1>Centro de control de OCHO.</h1>
+          <p>Gestión de usuarios, leads, contenido, seguridad y configuración del sistema.</p>
         </div>
-
         <div class="admin-top-actions">
-          <button class="admin-btn primary">Crear usuario</button>
-          <button class="admin-btn">Nuevo contenido</button>
-          <button class="admin-btn">Exportar actividad</button>
-          <button class="admin-btn danger">Bloquear acceso crítico</button>
+          <button class="admin-btn primary" id="btnRefresh">↻ Refrescar</button>
+          <button class="admin-btn" id="btnExportUsers">↓ Exportar usuarios</button>
+          <button class="admin-btn" id="btnExportLeads">↓ Exportar leads</button>
         </div>
       </section>
 
+      <!-- STATS -->
       <section class="admin-grid stats">
         <article class="admin-card">
           <div class="admin-stat-label">Usuarios activos</div>
           <div class="admin-stat-value" id="statActiveUsers">—</div>
-          <div class="admin-stat-meta">usuarios con acceso operativo</div>
+          <div class="admin-stat-meta">con acceso operativo</div>
         </article>
-
         <article class="admin-card">
           <div class="admin-stat-label">Leads totales</div>
           <div class="admin-stat-value" id="statTotalLeads">—</div>
           <div class="admin-stat-meta">captados desde formularios</div>
         </article>
-
+        <article class="admin-card">
+          <div class="admin-stat-label">Leads nuevos</div>
+          <div class="admin-stat-value" id="statNewLeads">—</div>
+          <div class="admin-stat-meta">sin contactar aún</div>
+        </article>
         <article class="admin-card">
           <div class="admin-stat-label">Administradores</div>
           <div class="admin-stat-value" id="statAdmins">—</div>
-          <div class="admin-stat-meta">usuarios con privilegios altos</div>
+          <div class="admin-stat-meta">usuarios privilegiados</div>
         </article>
-
         <article class="admin-card">
           <div class="admin-stat-label">Pendientes</div>
           <div class="admin-stat-value" id="statPendingUsers">—</div>
-          <div class="admin-stat-meta">usuarios en revisión o espera</div>
+          <div class="admin-stat-meta">en revisión o espera</div>
         </article>
       </section>
 
+      <!-- USUARIOS + SEGMENTOS -->
       <section class="admin-sections" id="users">
         <article class="admin-card">
-          <h2>Gestión de usuarios y permisos</h2>
-
+          <h2>Gestión de usuarios</h2>
           <div class="admin-controls">
-            <input class="admin-control" type="text" placeholder="Buscar usuario" />
-            <select class="admin-control">
-              <option>Todos los roles</option>
-              <option>Admin</option>
-              <option>Cliente</option>
-              <option>Editor</option>
+            <input class="admin-control" type="text" id="userSearchInput" placeholder="Buscar por nombre, email, empresa…" style="flex:1;min-width:160px;" />
+            <select class="admin-control" id="userRoleFilter">
+              <option value="all">Todos los roles</option>
+              <option value="admin">Admin</option>
+              <option value="member">Member</option>
             </select>
-            <select class="admin-control">
-              <option>Todos los estados</option>
-              <option>Activo</option>
-              <option>Bloqueado</option>
-              <option>Pendiente</option>
+            <select class="admin-control" id="userStatusFilter">
+              <option value="all">Todos los estados</option>
+              <option value="active">Activo</option>
+              <option value="pending">Pendiente</option>
+              <option value="blocked">Bloqueado</option>
             </select>
           </div>
-
           <div class="admin-table-wrap">
             <table class="admin-table">
               <thead>
@@ -584,160 +341,39 @@
                   <th>Rol</th>
                   <th>Estado</th>
                   <th>Último acceso</th>
+                  <th>Segmento</th>
                   <th>Acciones</th>
                 </tr>
               </thead>
               <tbody id="adminUsersTableBody">
-                <tr>
-                  <td colspan="5">Cargando usuarios...</td>
-                </tr>
+                <tr><td colspan="6" style="text-align:center;padding:28px;color:var(--am);">Cargando usuarios…</td></tr>
               </tbody>
             </table>
           </div>
         </article>
 
-        <article class="admin-card" id="security">
-          <h2>Seguridad y control de acceso</h2>
-          <div class="admin-list">
-            <div class="admin-list-item">
-              <strong>Acceso sospechoso detectado</strong>
-              <p>3 intentos fallidos desde IP no habitual en cuentas recientemente activadas.</p>
-              <span class="admin-pill danger">Requiere revisión</span>
-            </div>
-
-            <div class="admin-list-item">
-              <strong>Política de contraseñas</strong>
-              <p>Longitud mínima 10 caracteres · 2FA opcional · reseteo administrado.</p>
-              <span class="admin-pill success">Operativa</span>
-            </div>
-
-            <div class="admin-list-item">
-              <strong>Sesiones activas</strong>
-              <p>Control de sesiones desde navegador, móvil y dispositivos autenticados.</p>
-              <span class="admin-pill warning">Auditar sesiones</span>
-            </div>
+        <article class="admin-card">
+          <h2>Segmentos de usuarios</h2>
+          <div id="segmentBreakdown">
+            <p style="color:var(--am);font-size:.9rem;">Calculando…</p>
           </div>
         </article>
       </section>
 
-      <section class="admin-kpis" id="analytics">
+      <!-- LEADS -->
+      <section class="admin-full" id="leads">
         <article class="admin-card">
-          <h2>Adquisición</h2>
-          <div class="admin-stat-value">62</div>
-          <div class="admin-stat-meta">nuevos registros últimos 30 días</div>
-        </article>
-
-        <article class="admin-card">
-          <h2>Retención</h2>
-          <div class="admin-stat-value">71%</div>
-          <div class="admin-stat-meta">usuarios activos semana sobre semana</div>
-        </article>
-
-        <article class="admin-card">
-          <h2>Conversión</h2>
-          <div class="admin-stat-value">14,8%</div>
-          <div class="admin-stat-meta">lead → conversación comercial</div>
-        </article>
-      </section>
-
-      <section class="admin-full" id="content">
-        <article class="admin-card">
-          <h2>Gestión de contenidos</h2>
-
+          <h2>Leads captados</h2>
           <div class="admin-controls">
-            <button class="admin-btn">Nuevo artículo</button>
-            <button class="admin-btn">Nueva colección</button>
-            <button class="admin-btn">Publicar newsletter</button>
-            <button class="admin-btn">Programar contenido</button>
+            <input class="admin-control" type="text" id="leadSearchInput" placeholder="Buscar por nombre, email, empresa…" style="flex:1;min-width:160px;" />
+            <select class="admin-control" id="leadStageFilter">
+              <option value="all">Todos los stages</option>
+              <option value="new">Nuevo</option>
+              <option value="contacted">Contactado</option>
+              <option value="qualified">Calificado</option>
+              <option value="closed">Cerrado</option>
+            </select>
           </div>
-
-          <div class="admin-table-wrap">
-            <table class="admin-table">
-              <thead>
-                <tr>
-                  <th>Título</th>
-                  <th>Tipo</th>
-                  <th>Estado</th>
-                  <th>Autor</th>
-                  <th>Actualizado</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>Introducción al sistema OCHO</td>
-                  <td>Artículo</td>
-                  <td><span class="admin-pill success">Publicado</span></td>
-                  <td>Admin</td>
-                  <td>Hoy · 09:10</td>
-                </tr>
-                <tr>
-                  <td>Biblioteca visual · selección abril</td>
-                  <td>Colección</td>
-                  <td><span class="admin-pill warning">Borrador</span></td>
-                  <td>Editor</td>
-                  <td>Ayer · 17:54</td>
-                </tr>
-                <tr>
-                  <td>Recursos descargables para branding</td>
-                  <td>Toolkit</td>
-                  <td><span class="admin-pill success">Publicado</span></td>
-                  <td>Admin</td>
-                  <td>02 Abr · 12:31</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </section>
-
-      <section class="admin-sections" id="uploads">
-        <article class="admin-card">
-          <h2>Control de archivos subidos por usuarios</h2>
-
-          <div class="admin-list">
-            <div class="admin-list-item">
-              <strong>brief-marca-lucia.pdf</strong>
-              <p>Subido por Lucía Torres · Tamaño 2.4 MB · Carpeta Branding / Ingresos</p>
-              <span class="admin-pill warning">Pendiente de moderación</span>
-            </div>
-
-            <div class="admin-list-item">
-              <strong>galeria-campania-marzo.zip</strong>
-              <p>Subido por Admin · Tamaño 48 MB · Aprobado para biblioteca privada</p>
-              <span class="admin-pill success">Aprobado</span>
-            </div>
-
-            <div class="admin-list-item">
-              <strong>usuario_184_avatar.png</strong>
-              <p>Subido por Usuario 184 · Detectado formato correcto, sin incidencias.</p>
-              <span class="admin-pill success">Seguro</span>
-            </div>
-          </div>
-        </article>
-
-        <article class="admin-card">
-          <h2>Actividad reciente del sistema</h2>
-          <div class="admin-list">
-            <div class="admin-list-item">
-              <strong>11:08 · Nuevo lead captado</strong>
-              <p>Formulario de contacto enviado desde landing principal.</p>
-            </div>
-            <div class="admin-list-item">
-              <strong>10:42 · Login administrador</strong>
-              <p>Ingreso exitoso desde Safari iPhone luego de sincronización de dominio API.</p>
-            </div>
-            <div class="admin-list-item">
-              <strong>09:55 · Contenido actualizado</strong>
-              <p>Se publicó una nueva versión de la biblioteca editorial.</p>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      <section class="admin-full" id="real-leads">
-        <article class="admin-card">
-          <h2>Leads reales captados</h2>
-
           <div class="admin-table-wrap">
             <table class="admin-table">
               <thead>
@@ -746,12 +382,66 @@
                   <th>Empresa</th>
                   <th>Proyecto</th>
                   <th>Budget</th>
+                  <th>Stage</th>
                   <th>Fecha</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody id="adminLeadsTableBody">
+                <tr><td colspan="7" style="text-align:center;padding:28px;color:var(--am);">Cargando leads…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <!-- ANALYTICS -->
+      <section class="admin-kpis" id="analytics">
+        <article class="admin-card">
+          <h2>Distribución de presupuestos</h2>
+          <div id="budgetBreakdown">
+            <p style="color:var(--am);font-size:.9rem;">Calculando…</p>
+          </div>
+        </article>
+
+        <article class="admin-card">
+          <h2>Actividad de esta sesión</h2>
+          <div class="admin-list" id="activityLog">
+            <p style="color:var(--am);font-size:.9rem;">Sin actividad registrada.</p>
+          </div>
+        </article>
+      </section>
+
+      <!-- CONTENIDOS (estático / futuro CMS) -->
+      <section class="admin-full" id="content">
+        <article class="admin-card">
+          <h2>Gestión de contenidos</h2>
+          <div class="admin-controls">
+            <button class="admin-btn">Nuevo artículo</button>
+            <button class="admin-btn">Nueva colección</button>
+            <button class="admin-btn">Publicar newsletter</button>
+            <button class="admin-btn">Programar contenido</button>
+          </div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr><th>Título</th><th>Tipo</th><th>Estado</th><th>Autor</th><th>Actualizado</th></tr>
+              </thead>
+              <tbody>
                 <tr>
-                  <td colspan="5">Cargando leads...</td>
+                  <td>Introducción al sistema OCHO</td><td>Artículo</td>
+                  <td><span class="admin-pill success">Publicado</span></td>
+                  <td>Admin</td><td>Hoy · 09:10</td>
+                </tr>
+                <tr>
+                  <td>Biblioteca visual · selección mayo</td><td>Colección</td>
+                  <td><span class="admin-pill warning">Borrador</span></td>
+                  <td>Editor</td><td>Ayer · 17:54</td>
+                </tr>
+                <tr>
+                  <td>Recursos descargables para branding</td><td>Toolkit</td>
+                  <td><span class="admin-pill success">Publicado</span></td>
+                  <td>Admin</td><td>02 Abr · 12:31</td>
                 </tr>
               </tbody>
             </table>
@@ -759,105 +449,63 @@
         </article>
       </section>
 
-      <section class="admin-full" id="chat">
+      <!-- SEGURIDAD -->
+      <section class="admin-full" id="security">
         <article class="admin-card">
-          <h2>Chat entre usuarios y supervisión de conversaciones</h2>
-
-          <div class="admin-chat-grid">
-            <div class="admin-chat-thread">
-              <div class="admin-message">
-                <small>Lucía Torres · 10:11</small>
-                Necesito habilitación para subir archivos de branding al espacio compartido.
-              </div>
-              <div class="admin-message">
-                <small>Admin OCHO · 10:14</small>
-                Ya quedó activado el permiso. También te habilitamos una carpeta privada temporal.
-              </div>
-              <div class="admin-message">
-                <small>Lucía Torres · 10:16</small>
-                Perfecto, gracias. Voy a subir el material hoy.
-              </div>
+          <h2>Seguridad y control de acceso</h2>
+          <div class="admin-list">
+            <div class="admin-list-item">
+              <strong>Política de contraseñas</strong>
+              <p>Longitud mínima 6 caracteres · Hash bcrypt · Reset administrado.</p>
+              <span class="admin-pill success">Operativa</span>
             </div>
-
-            <div class="admin-list">
-              <div class="admin-list-item">
-                <strong>Conversaciones activas</strong>
-                <p>19 hilos en curso · 5 marcados como prioritarios · 2 sin respuesta.</p>
-              </div>
-              <div class="admin-list-item">
-                <strong>Moderación</strong>
-                <p>Filtros de lenguaje activo, bloqueo manual y archivado por administrador.</p>
-              </div>
-              <div class="admin-list-item">
-                <strong>Acciones rápidas</strong>
-                <p>Archivar hilo · Asignar agente · Escalar conversación · Responder como sistema.</p>
-              </div>
+            <div class="admin-list-item">
+              <strong>JWT activo</strong>
+              <p>Token firmado · Expiración 7 días · HttpOnly cookie.</p>
+              <span class="admin-pill success">Activo</span>
+            </div>
+            <div class="admin-list-item">
+              <strong>CORS configurado</strong>
+              <p>Orígenes permitidos: ocho.com.ar, api.ocho.com.ar, localhost.</p>
+              <span class="admin-pill success">Configurado</span>
             </div>
           </div>
         </article>
       </section>
 
+      <!-- SETTINGS -->
       <section class="admin-full" id="settings">
         <article class="admin-card">
-          <h2>Configuración general del sistema</h2>
-
+          <h2>Configuración del sistema</h2>
           <div class="admin-system-grid">
-            <div class="admin-card" style="padding:18px;">
+            <div class="admin-card" style="padding:16px;">
               <h2>Usuarios</h2>
               <div class="admin-config-list">
-                <div class="admin-config-row">
-                  <span>Registro abierto</span>
-                  <span class="admin-switch"></span>
-                </div>
-                <div class="admin-config-row">
-                  <span>Validación manual</span>
-                  <span class="admin-switch"></span>
-                </div>
-                <div class="admin-config-row">
-                  <span>2FA administradores</span>
-                  <span class="admin-switch"></span>
-                </div>
+                <div class="admin-config-row"><span>Registro abierto</span><span class="admin-switch on"></span></div>
+                <div class="admin-config-row"><span>Validación manual</span><span class="admin-switch"></span></div>
+                <div class="admin-config-row"><span>2FA administradores</span><span class="admin-switch"></span></div>
               </div>
             </div>
-
-            <div class="admin-card" style="padding:18px;">
+            <div class="admin-card" style="padding:16px;">
               <h2>Contenido</h2>
               <div class="admin-config-list">
-                <div class="admin-config-row">
-                  <span>Modo borrador por defecto</span>
-                  <span class="admin-switch"></span>
-                </div>
-                <div class="admin-config-row">
-                  <span>Moderación de uploads</span>
-                  <span class="admin-switch"></span>
-                </div>
-                <div class="admin-config-row">
-                  <span>Archivado automático</span>
-                  <span class="admin-switch"></span>
-                </div>
+                <div class="admin-config-row"><span>Borrador por defecto</span><span class="admin-switch on"></span></div>
+                <div class="admin-config-row"><span>Moderación de uploads</span><span class="admin-switch"></span></div>
+                <div class="admin-config-row"><span>Archivado automático</span><span class="admin-switch"></span></div>
               </div>
             </div>
-
-            <div class="admin-card" style="padding:18px;">
+            <div class="admin-card" style="padding:16px;">
               <h2>Infraestructura</h2>
               <div class="admin-config-list">
-                <div class="admin-config-row">
-                  <span>API principal</span>
-                  <span class="admin-muted">api.ocho.com.ar</span>
-                </div>
-                <div class="admin-config-row">
-                  <span>Proveedor email</span>
-                  <span class="admin-muted">Resend</span>
-                </div>
-                <div class="admin-config-row">
-                  <span>Automatización</span>
-                  <span class="admin-muted">n8n + NocoDB</span>
-                </div>
+                <div class="admin-config-row"><span>API principal</span><span style="color:var(--am);font-size:.85rem;">api.ocho.com.ar</span></div>
+                <div class="admin-config-row"><span>Base de datos</span><span style="color:var(--am);font-size:.85rem;">NocoDB</span></div>
+                <div class="admin-config-row"><span>Automatización</span><span style="color:var(--am);font-size:.85rem;">n8n + webhooks</span></div>
               </div>
             </div>
           </div>
         </article>
       </section>
+
     </main>
   </div>
 

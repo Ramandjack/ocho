@@ -26,7 +26,9 @@ const TABLES = {
    BASE FETCH
 =========================== */
 
-async function ncFetch(url, options = {}) {
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function ncFetch(url, options = {}, _retry = 0) {
   if (!TOKEN) throw new Error("NOCODB_TOKEN no configurado");
 
   const res = await fetch(url, {
@@ -38,6 +40,13 @@ async function ncFetch(url, options = {}) {
     ...options,
   });
 
+  // Rate limit: esperar y reintentar hasta 3 veces
+  if (res.status === 429 && _retry < 3) {
+    const wait = (res.headers.get("retry-after") || 1) * 1000 * (_retry + 1);
+    await sleep(wait);
+    return ncFetch(url, options, _retry + 1);
+  }
+
   const ct = res.headers.get("content-type") || "";
   const data = ct.includes("application/json") ? await res.json() : await res.text();
 
@@ -45,6 +54,10 @@ async function ncFetch(url, options = {}) {
     const msg = typeof data === "object"
       ? data.msg || data.message || JSON.stringify(data)
       : String(data);
+    // Si NocoDB devuelve ThrottlerException pese a los retries, mensaje claro
+    if (typeof msg === "string" && msg.includes("ThrottlerException")) {
+      throw new Error("Demasiadas solicitudes al servidor. Esperá unos segundos e intentá de nuevo.");
+    }
     throw new Error(msg);
   }
 

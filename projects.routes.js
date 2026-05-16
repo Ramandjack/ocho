@@ -5,41 +5,14 @@
  *   import projectsRouter from './projects.routes.js';
  *   app.use('/api', projectsRouter);
  *
- * Requiere que server.js exporte: authMiddleware, requireAdmin
- * O copiá las funciones de middleware acá.
+ * Middleware importado desde middleware/auth.js
  */
 
 import express from "express";
 import { db } from "./nocodb.service.js";
+import { authMiddleware, requireAdmin } from "./middleware/auth.js";
 
 const router = express.Router();
-
-/* ===========================
-   MIDDLEWARE (copiados de server.js)
-   Si ya los tenés en server.js, importalos desde ahí
-=========================== */
-
-import jwt from "jsonwebtoken";
-const JWT_SECRET = process.env.JWT_SECRET || "ocho-dev-secret-change-this";
-
-function authMiddleware(req, res, next) {
-  try {
-    const token = req.cookies?.ocho_token;
-    if (!token) return res.status(401).json({ success: false, message: "No autenticado" });
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    return res.status(401).json({ success: false, message: "Sesión inválida" });
-  }
-}
-
-async function requireAdmin(req, res, next) {
-  const role = String(req.user?.role || "").toLowerCase();
-  if (role !== "admin") {
-    return res.status(403).json({ success: false, message: "No autorizado" });
-  }
-  next();
-}
 
 /* ===========================
    ADMIN — CRUD PROYECTOS

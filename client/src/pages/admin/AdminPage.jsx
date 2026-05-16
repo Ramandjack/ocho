@@ -42,7 +42,7 @@ function formatDate(dateStr) {
 }
 
 function leadRecordId(lead) {
-  return lead.nocodb_record_id || lead.Id || "";
+  return lead.nocodb_id || lead.nocodb_record_id || lead.Id || "";
 }
 
 function stageClass(stage) {

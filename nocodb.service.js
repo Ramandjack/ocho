@@ -19,6 +19,7 @@ const TABLES = {
   modules:      process.env.NOCODB_MODULES_URL,
   user_modules: process.env.NOCODB_USER_MODULES_URL,
   activity_log: process.env.NOCODB_ACTIVITY_LOG_URL,
+  resources:    process.env.NOCODB_RESOURCES_URL,
 };
 
 /* ===========================
@@ -80,31 +81,67 @@ function extractList(result) {
 }
 
 /* ===========================
+   CACHE
+=========================== */
+
+const CACHE_TTL_MS = 60_000;
+const _cache = new Map();
+
+function _cacheGet(key) {
+  const entry = _cache.get(key);
+  if (!entry || Date.now() > entry.expiresAt) { _cache.delete(key); return null; }
+  return entry.data;
+}
+
+function _cacheSet(key, data) {
+  _cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+}
+
+function clearTableCache(table) {
+  for (const key of _cache.keys()) {
+    if (key.startsWith(`${table}::`)) _cache.delete(key);
+  }
+}
+
+/* ===========================
    CRUD OPERATIONS
 =========================== */
 
-/**
- * Obtener todos los registros de una tabla
- * @param {string} table - nombre de la tabla
- * @param {object} params - query params opcionales (where, limit, sort)
- */
-async function getAll(table, params = {}) {
-  const base = tableUrl(table);
-  const query = new URLSearchParams({ limit: 1000, ...params }).toString();
-  const result = await ncFetch(`${base}?${query}`);
-  return extractList(result);
+const PAGE_SIZE = 1000;
+
+async function fetchAllPages(base, params = {}) {
+  let offset = 0;
+  const all = [];
+
+  while (true) {
+    const query = new URLSearchParams({ ...params, limit: PAGE_SIZE, offset }).toString();
+    const result = await ncFetch(`${base}?${query}`);
+    const records = extractList(result);
+    all.push(...records);
+
+    if (!result?.pageInfo || result.pageInfo.isLastPage || records.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  return all;
 }
 
-/**
- * Obtener registros filtrados
- * @param {string} table
- * @param {string} where - filtro NocoDB ej: "(user_uuid,eq,abc123)"
- */
+async function getAll(table, params = {}) {
+  const key = `${table}::all::${JSON.stringify(params)}`;
+  const cached = _cacheGet(key);
+  if (cached) return cached;
+  const data = await fetchAllPages(tableUrl(table), params);
+  _cacheSet(key, data);
+  return data;
+}
+
 async function getWhere(table, where) {
-  const base = tableUrl(table);
-  const query = new URLSearchParams({ where, limit: 1000 }).toString();
-  const result = await ncFetch(`${base}?${query}`);
-  return extractList(result);
+  const key = `${table}::where::${where}`;
+  const cached = _cacheGet(key);
+  if (cached) return cached;
+  const data = await fetchAllPages(tableUrl(table), { where });
+  _cacheSet(key, data);
+  return data;
 }
 
 /**
@@ -127,28 +164,25 @@ async function insert(table, fields) {
     method: "POST",
     body: JSON.stringify([{ fields }]),
   });
+  clearTableCache(table);
   const records = extractList(result);
   return records[0] || fields;
 }
 
-/**
- * Actualizar un registro por ID numérico
- */
 async function update(table, id, fields) {
   const base = tableUrl(table);
   const result = await ncFetch(`${base}/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ fields }),
   });
+  clearTableCache(table);
   return flatten(result);
 }
 
-/**
- * Eliminar un registro por ID numérico
- */
 async function remove(table, id) {
   const base = tableUrl(table);
   await ncFetch(`${base}/${id}`, { method: "DELETE" });
+  clearTableCache(table);
   return { deleted: true, id };
 }
 
@@ -219,5 +253,6 @@ export const db = {
   logActivity,
   sendNotification,
   sendNotificationToMany,
+  clearTableCache,
   TABLES,
 };

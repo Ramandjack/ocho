@@ -9,29 +9,10 @@
  */
 
 import express from "express";
-import jwt from "jsonwebtoken";
 import { db } from "./nocodb.service.js";
+import { authMiddleware, requireAdmin } from "./middleware/auth.js";
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || "ocho-dev-secret-change-this";
-
-function authMiddleware(req, res, next) {
-  try {
-    const token = req.cookies?.ocho_token;
-    if (!token) return res.status(401).json({ success: false, message: "No autenticado" });
-    req.user = jwt.verify(token, JWT_SECRET);
-    next();
-  } catch {
-    return res.status(401).json({ success: false, message: "Sesión inválida" });
-  }
-}
-
-function requireAdmin(req, res, next) {
-  if (String(req.user?.role || "").toLowerCase() !== "admin") {
-    return res.status(403).json({ success: false, message: "No autorizado" });
-  }
-  next();
-}
 
 /* ===========================
    TASKS — ADMIN
@@ -209,6 +190,10 @@ router.get("/user/notifications", authMiddleware, async (req, res) => {
 router.patch("/user/notifications/:id/read", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
+    const notification = await db.getById("notifications", id);
+    if (!notification || notification.user_uuid !== req.user.sub) {
+      return res.status(403).json({ success: false, message: "No tenés acceso a esta notificación" });
+    }
     await db.update("notifications", id, { read: true });
     return res.json({ success: true });
   } catch (err) {
@@ -358,35 +343,102 @@ router.get("/admin/activity", authMiddleware, requireAdmin, async (req, res) => 
 
 router.get("/user/dashboard", authMiddleware, async (req, res) => {
   try {
-    const userUuid = req.user.sub;
+    const uuid = req.user.sub;
 
-    const [assignments, tasks, notifications, userModules] = await Promise.all([
-      db.getWhere("user_projects", `(user_uuid,eq,${userUuid})`),
-      db.getWhere("tasks", `(assigned_to,eq,${userUuid})`),
-      db.getWhere("notifications", `(user_uuid,eq,${userUuid})`),
-      db.getAll("modules"),
+    const [assignments, tasks, notifications] = await Promise.all([
+      db.getWhere("user_projects", `(user_uuid,eq,${uuid})`),
+      db.getWhere("tasks",         `(assigned_to,eq,${uuid})`),
+      db.getWhere("notifications", `(user_uuid,eq,${uuid})`),
     ]);
-
-    const unreadNotifications = notifications.filter(n => !n.read).length;
-    const pendingTasks = tasks.filter(t => t.status === "pending").length;
-    const inProgressTasks = tasks.filter(t => t.status === "in_progress").length;
 
     return res.json({
       success: true,
       dashboard: {
-        projects_count: assignments.length,
-        tasks_total: tasks.length,
-        tasks_pending: pendingTasks,
-        tasks_in_progress: inProgressTasks,
-        notifications_unread: unreadNotifications,
-        recent_notifications: notifications
-          .sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0))
-          .slice(0, 5),
-        recent_tasks: tasks
-          .sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0))
-          .slice(0, 5),
+        projects_count:       assignments.length,
+        tasks_total:          tasks.length,
+        tasks_pending:        tasks.filter(t => t.status === "pending").length,
+        tasks_in_progress:    tasks.filter(t => t.status === "in_progress").length,
+        tasks_done:           tasks.filter(t => t.status === "done").length,
+        notifications_unread: notifications.filter(n => !n.read).length,
+        recent_notifications: notifications.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0)).slice(0, 5),
+        recent_tasks:         tasks.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0)).slice(0, 5),
       },
     });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/* ===========================
+   RESOURCES — USER
+=========================== */
+
+// GET /api/user/resources — recursos de los proyectos del usuario
+router.get("/user/resources", authMiddleware, async (req, res) => {
+  try {
+    const userUuid = req.user.sub;
+
+    const assignments = await db.getWhere("user_projects", `(user_uuid,eq,${userUuid})`);
+    if (!assignments.length) {
+      return res.json({ success: true, resources: [] });
+    }
+
+    const projectIds = assignments.map(a => Number(a.project_id));
+    const allResources = await db.getAll("resources");
+    const resources = allResources.filter(r => projectIds.includes(Number(r.project_id)));
+
+    return res.json({ success: true, resources });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/user/resources — crear recurso (requiere acceso al proyecto)
+router.post("/user/resources", authMiddleware, async (req, res) => {
+  try {
+    const userUuid = req.user.sub;
+    const { title, url, type, description, project_id } = req.body || {};
+
+    if (!title || !project_id) {
+      return res.status(400).json({ success: false, message: "title y project_id son obligatorios" });
+    }
+
+    const assignment = await db.getWhere(
+      "user_projects",
+      `(user_uuid,eq,${userUuid})~and(project_id,eq,${project_id})`
+    );
+    if (!assignment.length) {
+      return res.status(403).json({ success: false, message: "Sin acceso a ese proyecto" });
+    }
+
+    const resource = await db.insert("resources", {
+      title:       String(title).trim(),
+      url:         url ? String(url).trim() : "",
+      type:        type || "link",
+      description: description ? String(description).trim() : "",
+      project_id:  Number(project_id),
+      created_by:  userUuid,
+    });
+
+    return res.status(201).json({ success: true, resource });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE /api/user/resources/:id — eliminar recurso propio
+router.delete("/user/resources/:id", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const resource = await db.getById("resources", id);
+    if (!resource) {
+      return res.status(404).json({ success: false, message: "Recurso no encontrado" });
+    }
+    if (resource.created_by !== req.user.sub) {
+      return res.status(403).json({ success: false, message: "Solo podés eliminar tus propios recursos" });
+    }
+    await db.remove("resources", id);
+    return res.json({ success: true });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

@@ -52,7 +52,7 @@ router.post("/admin/projects", authMiddleware, requireAdmin, async (req, res) =>
     await db.insert("user_projects", {
       user_uuid:  req.user.sub,
       project_id: projectId,
-      permission: "admin",
+      permission: "editor",
     });
 
     await db.logActivity(
@@ -63,7 +63,7 @@ router.post("/admin/projects", authMiddleware, requireAdmin, async (req, res) =>
       `Proyecto creado: "${title}"`
     );
 
-    return res.status(201).json({ success: true, project: { ...project, permission: "admin" } });
+    return res.status(201).json({ success: true, project: { ...project, permission: "editor" } });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
@@ -142,7 +142,8 @@ router.delete("/admin/projects/:id", authMiddleware, requireAdmin, async (req, r
 router.post("/admin/projects/:id/assign", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const { user_uuids, permission = "viewer" } = req.body || {};
+    const raw = req.body?.permission;
+    const permission = ["viewer", "editor"].includes(raw) ? raw : "viewer";
 
     if (!Array.isArray(user_uuids) || !user_uuids.length) {
       return res.status(400).json({ success: false, message: "user_uuids debe ser un array" });

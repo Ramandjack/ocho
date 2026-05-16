@@ -9,8 +9,36 @@
  */
 
 import express from "express";
+import multer from "multer";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
 import { db } from "./nocodb.service.js";
 import { authMiddleware, requireAdmin } from "./middleware/auth.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname  = path.dirname(__filename);
+const UPLOADS_DIR = path.join(__dirname, "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const BLOCKED_EXTS = new Set([".exe", ".bat", ".sh", ".cmd", ".msi", ".ps1", ".dll"]);
+
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: UPLOADS_DIR,
+    filename: (_req, file, cb) => {
+      const ext  = path.extname(file.originalname).toLowerCase();
+      const name = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
+      cb(null, name);
+    },
+  }),
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    if (BLOCKED_EXTS.has(ext)) return cb(new Error("Tipo de archivo no permitido"));
+    cb(null, true);
+  },
+});
 
 const router = express.Router();
 
@@ -393,6 +421,29 @@ router.get("/user/resources", authMiddleware, async (req, res) => {
   }
 });
 
+// POST /api/user/resources/upload — subir archivo
+router.post("/user/resources/upload", authMiddleware, (req, res) => {
+  upload.single("file")(req, res, err => {
+    if (err) return res.status(400).json({ success: false, message: err.message });
+    if (!req.file) return res.status(400).json({ success: false, message: "No se recibió archivo" });
+    return res.json({
+      success: true,
+      url: `/api/files/${req.file.filename}`,
+      original_name: req.file.originalname,
+    });
+  });
+});
+
+// GET /api/files/:filename — descargar archivo (con auth)
+router.get("/files/:filename", authMiddleware, (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const filepath = path.join(UPLOADS_DIR, filename);
+  if (!fs.existsSync(filepath)) {
+    return res.status(404).json({ success: false, message: "Archivo no encontrado" });
+  }
+  res.sendFile(filepath);
+});
+
 // POST /api/user/resources — crear recurso (requiere acceso al proyecto)
 router.post("/user/resources", authMiddleware, async (req, res) => {
   try {
@@ -436,6 +487,11 @@ router.delete("/user/resources/:id", authMiddleware, async (req, res) => {
     }
     if (resource.created_by !== req.user.sub) {
       return res.status(403).json({ success: false, message: "Solo podés eliminar tus propios recursos" });
+    }
+    if (resource.url?.startsWith("/api/files/")) {
+      const filename = path.basename(resource.url);
+      const filepath = path.join(UPLOADS_DIR, filename);
+      if (fs.existsSync(filepath)) fs.unlinkSync(filepath);
     }
     await db.remove("resources", id);
     return res.json({ success: true });

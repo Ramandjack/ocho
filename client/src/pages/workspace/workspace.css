@@ -1812,3 +1812,85 @@
   font-weight: 500;
 }
 
+
+/* ===========================
+   RESOURCES — UPLOAD / DOWNLOAD
+=========================== */
+
+.resource-mode-toggle {
+  display: flex;
+  gap: 0.25rem;
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px;
+  width: fit-content;
+}
+
+.resource-mode-btn {
+  padding: 0.3rem 0.85rem;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--muted-2);
+  font-size: 0.78rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.resource-mode-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.resource-file-zone {
+  border: 1.5px dashed var(--line);
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  color: var(--muted-2);
+  font-size: 0.82rem;
+  text-align: center;
+  transition: border-color 0.15s, background 0.15s;
+  min-height: unset;
+}
+
+.resource-file-zone:hover {
+  border-color: var(--accent);
+  background: var(--bg-elevated);
+}
+
+.resource-file-zone.uploading {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.resource-file-zone.done {
+  border-color: var(--accent);
+  border-style: solid;
+  color: var(--text);
+}
+
+.resource-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.resource-download-btn {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--accent);
+  text-decoration: none;
+  padding: 0.2rem 0.55rem;
+  border: 1px solid var(--accent);
+  border-radius: 5px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.resource-download-btn:hover {
+  background: var(--accent);
+  color: #fff;
+}

@@ -36,6 +36,19 @@ export async function getCurrentUser() {
   return apiFetch("/api/me", { method: "GET" });
 }
 
+export async function apiUpload(path, formData) {
+  const base = getApiBase();
+  const response = await fetch(`${base}${path}`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+    // No Content-Type: browser sets multipart/form-data with boundary
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.message || `HTTP ${response.status}`);
+  return data;
+}
+
 export async function logoutRequest() {
   try {
     await apiFetch("/api/logout", { method: "POST" });

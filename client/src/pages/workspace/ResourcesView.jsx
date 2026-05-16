@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { apiFetch } from "../../lib/api.js";
+import { useEffect, useRef, useState } from "react";
+import { apiFetch, apiUpload } from "../../lib/api.js";
 
 const TYPE_OPTIONS = ["link", "doc", "tool", "template", "note"];
 
@@ -10,6 +10,15 @@ const TYPE_LABEL = {
   template: "Template",
   note:     "Nota",
 };
+
+function fileExt(url = "") {
+  const m = url.match(/\.\w+$/);
+  return m ? m[0] : "";
+}
+
+function isFileResource(url = "") {
+  return url.startsWith("/api/files/");
+}
 
 function ResourceCard({ resource, onDelete, canDelete }) {
   const [confirming, setConfirming] = useState(false);
@@ -25,28 +34,42 @@ function ResourceCard({ resource, onDelete, canDelete }) {
     }
   }
 
+  const hasFile = isFileResource(resource.url);
+  const hasLink = resource.url && !hasFile;
+
   return (
     <div className="resource-card">
       <div className="resource-card-head">
         <div className="resource-card-left">
           <span className="resource-type-badge">{TYPE_LABEL[resource.type] ?? resource.type}</span>
           <span className="resource-card-title">
-            {resource.url
+            {hasLink
               ? <a href={resource.url} target="_blank" rel="noopener noreferrer" className="resource-link">{resource.title}</a>
               : resource.title
             }
           </span>
         </div>
-        {canDelete && (
-          <button
-            className={`resource-delete-btn${confirming ? " confirming" : ""}`}
-            onClick={handleDelete}
-            onBlur={() => setConfirming(false)}
-            title={confirming ? "Confirmar eliminación" : "Eliminar"}
-          >
-            {confirming ? "¿Eliminar?" : "×"}
-          </button>
-        )}
+        <div className="resource-card-actions">
+          {hasFile && (
+            <a
+              href={resource.url}
+              download={resource.title + fileExt(resource.url)}
+              className="resource-download-btn"
+            >
+              Descargar
+            </a>
+          )}
+          {canDelete && (
+            <button
+              className={`resource-delete-btn${confirming ? " confirming" : ""}`}
+              onClick={handleDelete}
+              onBlur={() => setConfirming(false)}
+              title={confirming ? "Confirmar eliminación" : "Eliminar"}
+            >
+              {confirming ? "¿Eliminar?" : "×"}
+            </button>
+          )}
+        </div>
       </div>
       {resource.description && (
         <p className="resource-card-desc">{resource.description}</p>
@@ -57,18 +80,48 @@ function ResourceCard({ resource, onDelete, canDelete }) {
 
 function AddResourceForm({ projects, onAdd, onClose }) {
   const [fields, setFields] = useState({
-    title: "", url: "", type: "link", description: "", project_id: projects[0]?.nocodb_id ?? projects[0]?.id ?? "",
+    title: "", url: "", type: "link", description: "",
+    project_id: projects[0]?.nocodb_id ?? projects[0]?.id ?? "",
   });
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState(null);
+  const [mode, setMode]           = useState("url");
+  const [uploading, setUploading] = useState(false);
+  const [uploadedName, setUploadedName] = useState("");
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState(null);
+  const fileRef = useRef(null);
 
-  function set(k, v) {
-    setFields(f => ({ ...f, [k]: v }));
+  function set(k, v) { setFields(f => ({ ...f, [k]: v })); }
+
+  function switchMode(m) {
+    setMode(m);
+    set("url", "");
+    setUploadedName("");
+    setError(null);
+  }
+
+  async function handleFile(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await apiUpload("/api/user/resources/upload", form);
+      set("url", res.url);
+      setUploadedName(res.original_name);
+      if (!fields.title) set("title", file.name.replace(/\.[^.]+$/, ""));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUploading(false);
+    }
   }
 
   async function submit(e) {
     e.preventDefault();
     if (!fields.title.trim()) return;
+    if (mode === "file" && !fields.url) { setError("Elegí un archivo primero"); return; }
     setSaving(true);
     setError(null);
     try {
@@ -86,6 +139,7 @@ function AddResourceForm({ projects, onAdd, onClose }) {
 
   return (
     <form className="resource-add-form" onSubmit={submit}>
+
       <div className="resource-form-row">
         <input
           className="resource-form-input"
@@ -106,13 +160,37 @@ function AddResourceForm({ projects, onAdd, onClose }) {
         </select>
       </div>
 
-      <input
-        className="resource-form-input"
-        placeholder="URL (opcional)"
-        type="url"
-        value={fields.url}
-        onChange={e => set("url", e.target.value)}
-      />
+      <div className="resource-mode-toggle">
+        <button type="button" className={`resource-mode-btn${mode === "url" ? " active" : ""}`} onClick={() => switchMode("url")}>
+          URL
+        </button>
+        <button type="button" className={`resource-mode-btn${mode === "file" ? " active" : ""}`} onClick={() => switchMode("file")}>
+          Archivo
+        </button>
+      </div>
+
+      {mode === "url" ? (
+        <input
+          className="resource-form-input"
+          placeholder="https://… (opcional)"
+          type="url"
+          value={fields.url}
+          onChange={e => set("url", e.target.value)}
+        />
+      ) : (
+        <div
+          className={`resource-file-zone${uploading ? " uploading" : ""}${uploadedName ? " done" : ""}`}
+          onClick={() => !uploading && fileRef.current?.click()}
+        >
+          <input ref={fileRef} type="file" hidden onChange={handleFile} />
+          {uploading
+            ? <span>Subiendo…</span>
+            : uploadedName
+              ? <span>✓ {uploadedName}</span>
+              : <span>Hacé click para seleccionar un archivo · máx 10 MB</span>
+          }
+        </div>
+      )}
 
       <input
         className="resource-form-input"
@@ -124,6 +202,7 @@ function AddResourceForm({ projects, onAdd, onClose }) {
       <div className="resource-form-row">
         <select
           className="resource-form-select"
+          style={{ flex: 1 }}
           value={fields.project_id}
           onChange={e => set("project_id", e.target.value)}
         >
@@ -138,7 +217,7 @@ function AddResourceForm({ projects, onAdd, onClose }) {
           <button type="button" className="resource-form-cancel" onClick={onClose}>
             Cancelar
           </button>
-          <button type="submit" className="resource-form-save" disabled={saving}>
+          <button type="submit" className="resource-form-save" disabled={saving || uploading}>
             {saving ? "Guardando…" : "Guardar"}
           </button>
         </div>

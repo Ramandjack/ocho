@@ -455,6 +455,7 @@
 }
 
 .project-form-select {
+  width: auto;
   min-height: unset;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -1079,6 +1080,7 @@
 }
 
 .resource-form-select {
+  width: auto;
   min-height: unset;
   background: var(--panel);
   border: 1px solid var(--line);

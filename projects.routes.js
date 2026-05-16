@@ -52,7 +52,7 @@ router.post("/admin/projects", authMiddleware, requireAdmin, async (req, res) =>
     await db.insert("user_projects", {
       user_uuid:  req.user.sub,
       project_id: projectId,
-      permission: "owner",
+      permission: "admin",
     });
 
     await db.logActivity(
@@ -63,7 +63,7 @@ router.post("/admin/projects", authMiddleware, requireAdmin, async (req, res) =>
       `Proyecto creado: "${title}"`
     );
 
-    return res.status(201).json({ success: true, project: { ...project, permission: "owner" } });
+    return res.status(201).json({ success: true, project: { ...project, permission: "admin" } });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

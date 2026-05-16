@@ -18,7 +18,7 @@ const TYPE_LABEL = {
 };
 
 const PERM_LABEL = {
-  owner:  "propietario",
+  admin:  "admin",
   editor: "editor",
   viewer: "lector",
 };

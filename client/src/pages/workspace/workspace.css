@@ -422,6 +422,7 @@
 
 .project-form-input {
   width: 100%;
+  min-height: unset;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -454,6 +455,7 @@
 }
 
 .project-form-select {
+  min-height: unset;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1057,6 +1059,7 @@
 
 .resource-form-input {
   flex: 1;
+  min-height: unset;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1076,6 +1079,7 @@
 }
 
 .resource-form-select {
+  min-height: unset;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -1420,6 +1424,7 @@
 
 .ai-chat-input {
   flex: 1;
+  min-height: unset;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 10px;
@@ -1805,26 +1810,3 @@
   font-weight: 500;
 }
 
-/* ===========================
-   PROJECT FORM â€” PLACEHOLDER FIX
-   El problema: var(--muted-2) a veces
-   hereda un valor invisible.
-   Forzamos con color literal como
-   fallback seguro.
-=========================== */
-
-.project-form-input::placeholder {
-  color: var(--muted-2, rgba(255, 255, 255, 0.28)) !important;
-  opacity: 1 !important;
-}
-
-.project-form-select {
-  /* Asegurar que el texto del select sea legible */
-  color: var(--text, #f5f2ed);
-  background: var(--panel, #1a1a1a);
-}
-
-.project-form-select option {
-  background: var(--bg-elevated, #141414);
-  color: var(--text, #f5f2ed);
-}

@@ -46,15 +46,24 @@ router.post("/admin/projects", authMiddleware, requireAdmin, async (req, res) =>
       due_date: due_date || null,
     });
 
+    const projectId = Number(project.nocodb_id ?? project.id);
+
+    // Auto-asignar al creador como owner
+    await db.insert("user_projects", {
+      user_uuid:  req.user.sub,
+      project_id: projectId,
+      permission: "owner",
+    });
+
     await db.logActivity(
       req.user.sub,
       "create",
       "project",
-      project.id,
+      projectId,
       `Proyecto creado: "${title}"`
     );
 
-    return res.status(201).json({ success: true, project });
+    return res.status(201).json({ success: true, project: { ...project, permission: "owner" } });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

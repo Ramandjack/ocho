@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 
-const STATUSES = ["pending", "in_progress", "done"];
-
 const STATUS_LABEL = {
   pending:     "pendiente",
   in_progress: "en curso",

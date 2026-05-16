@@ -1675,3 +1675,156 @@
   color: var(--muted-2);
   margin: 0;
 }
+/* ===========================
+   DASHBOARD â€” HERO EDITORIAL
+   Agregar al final de workspace.css
+=========================== */
+
+.dashboard-hero {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 3.5rem 3rem 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Acento sutil en la esquina */
+.dashboard-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 55% 60% at 90% 50%,
+    rgba(255, 255, 255, 0.025) 0%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+/* "â€” MEMBER AREA" */
+.dashboard-hero-member {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin-bottom: 1.5rem;
+}
+
+.dashboard-hero-line {
+  display: block;
+  width: 1.5rem;
+  height: 1px;
+  background: var(--muted-2);
+  flex-shrink: 0;
+}
+
+.dashboard-hero-member-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+}
+
+/* TÃ­tulo grande */
+.dashboard-hero-title {
+  font-size: clamp(2rem, 4vw, 3.25rem);
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+  margin: 0 0 1.25rem;
+  max-width: 640px;
+}
+
+/* SubtÃ­tulo */
+.dashboard-hero-sub {
+  font-size: 0.925rem;
+  color: var(--muted-2);
+  line-height: 1.65;
+  max-width: 480px;
+  margin: 0 0 1.75rem;
+}
+
+/* Pills de categorÃ­a */
+.dashboard-hero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.dashboard-hero-tag {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+}
+
+/* Chip usuario activo */
+.dashboard-hero-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.4rem 1rem 0.4rem 0.4rem;
+  align-self: flex-start;
+}
+
+.dashboard-hero-avatar {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 50%;
+  background: var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.dashboard-hero-chip-text {
+  font-size: 0.8rem;
+  color: var(--muted-2);
+}
+
+.dashboard-hero-chip-text strong {
+  color: var(--text);
+  font-weight: 500;
+}
+
+/* ===========================
+   PROJECT FORM â€” PLACEHOLDER FIX
+   El problema: var(--muted-2) a veces
+   hereda un valor invisible.
+   Forzamos con color literal como
+   fallback seguro.
+=========================== */
+
+.project-form-input::placeholder {
+  color: var(--muted-2, rgba(255, 255, 255, 0.28)) !important;
+  opacity: 1 !important;
+}
+
+.project-form-select {
+  /* Asegurar que el texto del select sea legible */
+  color: var(--text, #f5f2ed);
+  background: var(--panel, #1a1a1a);
+}
+
+.project-form-select option {
+  background: var(--bg-elevated, #141414);
+  color: var(--text, #f5f2ed);
+}

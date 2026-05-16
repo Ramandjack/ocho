@@ -28,10 +28,12 @@ function StatCard({ value, label }) {
   );
 }
 
+const TAGS = ["CONTENIDO", "RECURSOS EXCLUSIVOS", "EDITORIAL", "CRM COMMUNITY"];
+
 export default function DashboardView() {
-  const { user }  = useOutletContext();
-  const [data, setData]       = useState(null);
-  const [loading, setLoading] = useState(true);
+  const { user }                    = useOutletContext();
+  const [data, setData]             = useState(null);
+  const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
     apiFetch("/api/user/dashboard")
@@ -40,7 +42,11 @@ export default function DashboardView() {
       .finally(() => setLoading(false));
   }, []);
 
-  const firstName = user?.first_name || user?.full_name?.split(" ")[0] || "Hola";
+  const firstName = user?.first_name || user?.full_name?.split(" ")[0] || "Usuario";
+  const initials  = (
+    (user?.first_name?.[0] || user?.full_name?.[0] || "U") +
+    (user?.last_name?.[0]  || user?.full_name?.split(" ")?.[1]?.[0] || "")
+  ).toUpperCase();
 
   if (loading) {
     return <div className="dashboard-loading">Cargando sistema…</div>;
@@ -51,18 +57,46 @@ export default function DashboardView() {
 
   return (
     <div className="dashboard">
-      <header className="dashboard-header">
-        <p className="dashboard-greeting">Hola, {firstName}.</p>
-        <p className="dashboard-sub">Estado actual de tu sistema.</p>
-      </header>
 
+      {/* ── Hero editorial ───────────────────────────────────── */}
+      <div className="dashboard-hero">
+        <div className="dashboard-hero-member">
+          <span className="dashboard-hero-line" />
+          <span className="dashboard-hero-member-label">Member Area</span>
+        </div>
+
+        <h1 className="dashboard-hero-title">
+          Bienvenido al ecosistema privado de OCHO.
+        </h1>
+
+        <p className="dashboard-hero-sub">
+          Un espacio para acceder a contenido curado, recursos estratégicos,
+          piezas editoriales y futuras herramientas del sistema.
+        </p>
+
+        <div className="dashboard-hero-tags">
+          {TAGS.map(t => (
+            <span key={t} className="dashboard-hero-tag">{t}</span>
+          ))}
+        </div>
+
+        <div className="dashboard-hero-chip">
+          <span className="dashboard-hero-avatar">{initials}</span>
+          <span className="dashboard-hero-chip-text">
+            Hola, <strong>{firstName}</strong> — acceso activo
+          </span>
+        </div>
+      </div>
+
+      {/* ── Stats ────────────────────────────────────────────── */}
       <section className="dashboard-stats">
-        <StatCard value={data?.projects_count     ?? 0} label="proyectos" />
-        <StatCard value={data?.tasks_total        ?? 0} label="tareas" />
-        <StatCard value={data?.tasks_in_progress  ?? 0} label="en curso" />
+        <StatCard value={data?.projects_count      ?? 0} label="proyectos" />
+        <StatCard value={data?.tasks_total         ?? 0} label="tareas" />
+        <StatCard value={data?.tasks_in_progress   ?? 0} label="en curso" />
         <StatCard value={data?.notifications_unread ?? 0} label="sin leer" />
       </section>
 
+      {/* ── Grid de actividad ────────────────────────────────── */}
       <div className="dashboard-grid">
         <section className="dashboard-section">
           <div className="dashboard-section-head">
@@ -110,6 +144,7 @@ export default function DashboardView() {
           )}
         </section>
       </div>
+
     </div>
   );
 }

@@ -26,12 +26,12 @@ const PERM_LABEL = {
 const TYPE_OPTIONS = ["web", "saas", "ecommerce", "marketplace", "ia"];
 
 function NewProjectForm({ onSuccess, onClose }) {
-  const [title, setTitle]           = useState("");
-  const [type, setType]             = useState("web");
+  const [title, setTitle]             = useState("");
+  const [type, setType]               = useState("web");
   const [description, setDescription] = useState("");
-  const [saving, setSaving]         = useState(false);
-  const [error, setError]           = useState(null);
-  const [titleDirty, setTitleDirty] = useState(false);
+  const [saving, setSaving]           = useState(false);
+  const [error, setError]             = useState(null);
+  const [titleDirty, setTitleDirty]   = useState(false);
 
   const titleRef = useRef(null);
 
@@ -75,6 +75,8 @@ function NewProjectForm({ onSuccess, onClose }) {
 
   return (
     <form className="project-form" onSubmit={submit} noValidate>
+
+      {/* Fila título + tipo */}
       <div className="project-form-row">
         <div className="project-form-field" style={{ flex: 1 }}>
           <input
@@ -84,6 +86,7 @@ function NewProjectForm({ onSuccess, onClose }) {
             value={title}
             onChange={e => { setTitle(e.target.value); setTitleDirty(true); }}
             disabled={saving}
+            autoComplete="off"
           />
           {titleInvalid && (
             <span className="project-form-hint">El nombre es obligatorio.</span>
@@ -102,14 +105,17 @@ function NewProjectForm({ onSuccess, onClose }) {
         </select>
       </div>
 
+      {/* Descripción */}
       <input
         className="project-form-input"
         placeholder="Descripción (opcional)"
         value={description}
         onChange={e => setDescription(e.target.value)}
         disabled={saving}
+        autoComplete="off"
       />
 
+      {/* Footer */}
       <div className="project-form-footer">
         {error ? (
           <span className="project-form-error">{error}</span>
@@ -178,9 +184,7 @@ export default function ProjectsView() {
           <div>
             <h1 className="view-title">Proyectos</h1>
             <p className="view-sub">
-              {refreshing
-                ? "Actualizando…"
-                : "Espacios de trabajo asignados a tu cuenta."}
+              {refreshing ? "Actualizando…" : "Espacios de trabajo asignados a tu cuenta."}
             </p>
           </div>
           {isAdmin && !adding && (
@@ -202,10 +206,7 @@ export default function ProjectsView() {
         <div className="projects-empty">
           <p className="view-empty">Todavía no tenés proyectos asignados.</p>
           {isAdmin && (
-            <button
-              className="projects-empty-cta"
-              onClick={() => setAdding(true)}
-            >
+            <button className="projects-empty-cta" onClick={() => setAdding(true)}>
               Crear tu primer proyecto
             </button>
           )}
@@ -224,11 +225,9 @@ export default function ProjectsView() {
                   {STATUS_LABEL[p.status] ?? p.status}
                 </span>
               </div>
-
               {p.description && (
                 <p className="project-card-desc">{p.description}</p>
               )}
-
               <div className="project-card-meta">
                 <span className="project-card-type">
                   {TYPE_LABEL[p.type] ?? p.type ?? "—"}

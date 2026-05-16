@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { apiFetch } from "../../lib/api.js";
 
@@ -25,30 +25,48 @@ const PERM_LABEL = {
 
 const TYPE_OPTIONS = ["web", "saas", "ecommerce", "marketplace", "ia"];
 
-function NewProjectForm({ onAdd, onClose }) {
-  const [fields, setFields] = useState({ title: "", type: "web", description: "" });
-  const [saving, setSaving] = useState(false);
-  const [error, setError]   = useState(null);
+function NewProjectForm({ onSuccess, onClose }) {
+  const [title, setTitle]           = useState("");
+  const [type, setType]             = useState("web");
+  const [description, setDescription] = useState("");
+  const [saving, setSaving]         = useState(false);
+  const [error, setError]           = useState(null);
+  const [titleDirty, setTitleDirty] = useState(false);
 
-  function set(k, v) { setFields(f => ({ ...f, [k]: v })); }
+  const titleRef = useRef(null);
+
+  useEffect(() => {
+    titleRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === "Escape") onClose(); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const titleInvalid = titleDirty && !title.trim();
 
   async function submit(e) {
     e.preventDefault();
-    if (!fields.title.trim()) return;
+    setTitleDirty(true);
+    if (!title.trim()) {
+      titleRef.current?.focus();
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
-      const res = await apiFetch("/api/admin/projects", {
+      await apiFetch("/api/admin/projects", {
         method: "POST",
         body: JSON.stringify({
-          title:       fields.title.trim(),
-          type:        fields.type,
-          description: fields.description.trim(),
+          title:       title.trim(),
+          type,
+          description: description.trim(),
           status:      "active",
         }),
       });
-      onAdd(res.project);
-      onClose();
+      onSuccess();
     } catch (err) {
       setError(err.message);
       setSaving(false);
@@ -56,20 +74,27 @@ function NewProjectForm({ onAdd, onClose }) {
   }
 
   return (
-    <form className="resource-add-form" onSubmit={submit}>
-      <div className="resource-form-row">
-        <input
-          className="resource-form-input"
-          placeholder="Nombre del proyecto"
-          value={fields.title}
-          onChange={e => set("title", e.target.value)}
-          autoFocus
-          required
-        />
+    <form className="project-form" onSubmit={submit} noValidate>
+      <div className="project-form-row">
+        <div className="project-form-field" style={{ flex: 1 }}>
+          <input
+            ref={titleRef}
+            className={`project-form-input${titleInvalid ? " invalid" : ""}`}
+            placeholder="Nombre del proyecto"
+            value={title}
+            onChange={e => { setTitle(e.target.value); setTitleDirty(true); }}
+            disabled={saving}
+          />
+          {titleInvalid && (
+            <span className="project-form-hint">El nombre es obligatorio.</span>
+          )}
+        </div>
+
         <select
-          className="resource-form-select"
-          value={fields.type}
-          onChange={e => set("type", e.target.value)}
+          className="project-form-select"
+          value={type}
+          onChange={e => setType(e.target.value)}
+          disabled={saving}
         >
           {TYPE_OPTIONS.map(t => (
             <option key={t} value={t}>{TYPE_LABEL[t]}</option>
@@ -78,46 +103,68 @@ function NewProjectForm({ onAdd, onClose }) {
       </div>
 
       <input
-        className="resource-form-input"
+        className="project-form-input"
         placeholder="Descripción (opcional)"
-        value={fields.description}
-        onChange={e => set("description", e.target.value)}
+        value={description}
+        onChange={e => setDescription(e.target.value)}
+        disabled={saving}
       />
 
-      <div className="resource-form-row">
-        <div style={{ flex: 1 }} />
-        <div className="resource-form-actions">
-          <button type="button" className="resource-form-cancel" onClick={onClose}>
+      <div className="project-form-footer">
+        {error ? (
+          <span className="project-form-error">{error}</span>
+        ) : (
+          <span className="project-form-hint dim">Esc para cancelar</span>
+        )}
+        <div className="project-form-actions">
+          <button
+            type="button"
+            className="project-form-cancel"
+            onClick={onClose}
+            disabled={saving}
+          >
             Cancelar
           </button>
-          <button type="submit" className="resource-form-save" disabled={saving}>
+          <button
+            type="submit"
+            className="project-form-save"
+            disabled={saving}
+          >
             {saving ? "Creando…" : "Crear proyecto"}
           </button>
         </div>
       </div>
-
-      {error && <p className="resource-form-error">{error}</p>}
     </form>
   );
 }
 
 export default function ProjectsView() {
-  const { user }            = useOutletContext();
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [adding, setAdding]     = useState(false);
+  const { user }                    = useOutletContext();
+  const [projects, setProjects]     = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [adding, setAdding]         = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
 
+  async function fetchProjects() {
+    try {
+      const res = await apiFetch("/api/user/projects");
+      setProjects(res.projects ?? []);
+    } catch {
+      /* mantener lista actual si falla */
+    }
+  }
+
   useEffect(() => {
-    apiFetch("/api/user/projects")
-      .then(res => setProjects(res.projects ?? []))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    fetchProjects().finally(() => setLoading(false));
   }, []);
 
-  function handleAdd(project) {
-    setProjects(prev => [project, ...prev]);
+  async function handleSuccess() {
+    setAdding(false);
+    setRefreshing(true);
+    await fetchProjects();
+    setRefreshing(false);
   }
 
   if (loading) {
@@ -127,13 +174,17 @@ export default function ProjectsView() {
   return (
     <div className="projects-view">
       <header className="view-header">
-        <div className="resources-header-row">
+        <div className="projects-header-row">
           <div>
             <h1 className="view-title">Proyectos</h1>
-            <p className="view-sub">Espacios de trabajo asignados a tu cuenta.</p>
+            <p className="view-sub">
+              {refreshing
+                ? "Actualizando…"
+                : "Espacios de trabajo asignados a tu cuenta."}
+            </p>
           </div>
           {isAdmin && !adding && (
-            <button className="resources-add-btn" onClick={() => setAdding(true)}>
+            <button className="projects-add-btn" onClick={() => setAdding(true)}>
               + Nuevo proyecto
             </button>
           )}
@@ -141,13 +192,26 @@ export default function ProjectsView() {
       </header>
 
       {adding && (
-        <NewProjectForm onAdd={handleAdd} onClose={() => setAdding(false)} />
+        <NewProjectForm
+          onSuccess={handleSuccess}
+          onClose={() => setAdding(false)}
+        />
       )}
 
-      {!projects.length ? (
-        <p className="view-empty">Todavía no tenés proyectos asignados.</p>
+      {!projects.length && !adding ? (
+        <div className="projects-empty">
+          <p className="view-empty">Todavía no tenés proyectos asignados.</p>
+          {isAdmin && (
+            <button
+              className="projects-empty-cta"
+              onClick={() => setAdding(true)}
+            >
+              Crear tu primer proyecto
+            </button>
+          )}
+        </div>
       ) : (
-        <div className="projects-grid">
+        <div className={`projects-grid${refreshing ? " refreshing" : ""}`}>
           {projects.map(p => (
             <Link
               key={p.nocodb_id ?? p.id}

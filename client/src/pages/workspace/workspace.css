@@ -344,6 +344,208 @@
   max-width: 860px;
 }
 
+.projects-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.projects-add-btn {
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.projects-add-btn:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+/* Empty state */
+
+.projects-empty {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.projects-empty-cta {
+  align-self: flex-start;
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.projects-empty-cta:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+
+/* Project creation form */
+
+.project-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  margin-bottom: 0.5rem;
+}
+
+.project-form-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.project-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.project-form-input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.875rem;
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+}
+
+.project-form-input:focus {
+  border-color: var(--line-strong);
+}
+
+.project-form-input.invalid {
+  border-color: rgba(220, 80, 80, 0.5);
+}
+
+.project-form-input.invalid:focus {
+  border-color: rgba(220, 80, 80, 0.8);
+}
+
+.project-form-input::placeholder {
+  color: var(--muted-2);
+}
+
+.project-form-input:disabled {
+  opacity: 0.5;
+}
+
+.project-form-select {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.82rem;
+  color: var(--muted);
+  outline: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: border-color 0.15s;
+}
+
+.project-form-select:focus {
+  border-color: var(--line-strong);
+}
+
+.project-form-select:disabled {
+  opacity: 0.5;
+}
+
+.project-form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.1rem;
+}
+
+.project-form-hint {
+  font-size: 0.75rem;
+  color: rgba(220, 80, 80, 0.85);
+}
+
+.project-form-hint.dim {
+  color: var(--muted-2);
+}
+
+.project-form-error {
+  font-size: 0.78rem;
+  color: rgba(220, 80, 80, 0.85);
+}
+
+.project-form-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.project-form-cancel {
+  font-size: 0.82rem;
+  color: var(--muted-2);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  transition: color 0.12s;
+}
+
+.project-form-cancel:hover:not(:disabled) {
+  color: var(--muted);
+}
+
+.project-form-cancel:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.project-form-save {
+  font-size: 0.82rem;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 0.35rem 0.8rem;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+
+.project-form-save:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* Grid refresh state */
+
+.projects-grid.refreshing {
+  opacity: 0.6;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}
+
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));

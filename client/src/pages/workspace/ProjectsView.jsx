@@ -10,10 +10,11 @@ const STATUS_LABEL = {
 };
 
 const TYPE_LABEL = {
-  web:    "Web",
-  app:    "App",
-  design: "Diseño",
-  other:  "Otro",
+  web:         "Web",
+  saas:        "SaaS",
+  ecommerce:   "Ecommerce",
+  marketplace: "Marketplace",
+  ia:          "IA",
 };
 
 const PERM_LABEL = {
@@ -22,7 +23,7 @@ const PERM_LABEL = {
   viewer: "lector",
 };
 
-const TYPE_OPTIONS = ["web", "app", "design", "other"];
+const TYPE_OPTIONS = ["web", "saas", "ecommerce", "marketplace", "ia"];
 
 function NewProjectForm({ onAdd, onClose }) {
   const [fields, setFields] = useState({ title: "", type: "web", description: "" });

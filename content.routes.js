@@ -20,6 +20,26 @@ function slugify(str) {
 }
 
 /* =========================
+   USER — CONTENT (solo publicados)
+========================= */
+
+router.get("/user/content", authMiddleware, async (_req, res) => {
+  try {
+    const items = await db.getAll("content");
+    const published = items
+      .filter(c => c.status === "published")
+      .sort((a, b) =>
+        new Date(b.published_at || b.updated_at || b.CreatedAt || 0) -
+        new Date(a.published_at || a.updated_at || a.CreatedAt || 0)
+      );
+    return res.json({ success: true, content: published });
+  } catch (err) {
+    console.error("GET /user/content:", err.message);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+/* =========================
    ADMIN — CONTENT LIST
 ========================= */
 

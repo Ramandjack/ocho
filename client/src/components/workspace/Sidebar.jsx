@@ -8,6 +8,7 @@ const NAV_PRIMARY = [
 ];
 
 const NAV_SECONDARY = [
+  { to: "/panel/content",    label: "Contenido" },
   { to: "/panel/resources",  label: "Recursos" },
   { to: "/panel/workspace",  label: "Workspace" },
   { to: "/panel/ai",         label: "IA" },

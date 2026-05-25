@@ -15,6 +15,7 @@ import WorkspaceView        from "./pages/workspace/WorkspaceView.jsx";
 import ActivityView         from "./pages/workspace/ActivityView.jsx";
 import ResourcesView        from "./pages/workspace/ResourcesView.jsx";
 import AIView               from "./pages/workspace/AIView.jsx";
+import ContentView          from "./pages/workspace/ContentView.jsx";
 import WorkspaceFocusView   from "./pages/workspace/WorkspaceFocusView.jsx";
 
 // Admin
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="projects/:id"   element={<WorkspaceView />} />
         <Route path="tasks"          element={<TasksView />} />
         <Route path="activity"       element={<ActivityView />} />
+        <Route path="content"         element={<ContentView />} />
         <Route path="resources"      element={<ResourcesView />} />
         <Route path="ai"             element={<AIView />} />
         <Route path="workspace"      element={<WorkspaceFocusView />} />

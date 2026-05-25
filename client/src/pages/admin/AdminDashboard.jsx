@@ -1,0 +1,163 @@
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { apiFetch } from "../../lib/api.js";
+import { useToast } from "../../hooks/useToast.js";
+import { ToastContainer } from "./adminUtils.jsx";
+import { usePolling } from "../../hooks/usePolling.js";
+
+const SEGMENT_LABELS = {
+  newsletter_only:    "Newsletter",
+  ai_interest:        "IA / Sistemas",
+  ecommerce_interest: "Ecommerce",
+  editorial_interest: "Editorial",
+  marketing_leads:    "Marketing",
+};
+
+export default function AdminDashboard() {
+  const [users, setUsers]   = useState([]);
+  const [leads, setLeads]   = useState([]);
+  const [activity, setActivity] = useState([]);
+  const [loading, setLoading]   = useState(true);
+  const { toasts, show } = useToast();
+
+  const load = useCallback(async () => {
+    try {
+      const [uRes, lRes, aRes] = await Promise.all([
+        apiFetch("/api/admin/users"),
+        apiFetch("/api/admin/leads"),
+        apiFetch("/api/admin/activity"),
+      ]);
+      setUsers(uRes.users  ?? []);
+      setLeads(lRes.leads  ?? []);
+      setActivity(aRes.activity ?? []);
+    } catch (err) {
+      show(`Error: ${err.message}`, "danger");
+    } finally {
+      setLoading(false);
+    }
+  }, [show]);
+
+  useEffect(() => { load(); }, [load]);
+  usePolling(load, 60_000);
+
+  const stats = useMemo(() => ({
+    activeUsers:  users.filter(u => (u.status || "active") === "active").length,
+    admins:       users.filter(u => String(u.role || "").toLowerCase() === "admin").length,
+    pending:      users.filter(u => u.status === "pending").length,
+    banned:       users.filter(u => u.status === "banned").length,
+    totalLeads:   leads.length,
+    newLeads:     leads.filter(l => (l.stage || "new") === "new").length,
+  }), [users, leads]);
+
+  const segmentRows = useMemo(() => {
+    const map = {};
+    for (const u of users) {
+      const seg = u.segment || "newsletter_only";
+      map[seg] = (map[seg] || 0) + 1;
+    }
+    const total = users.length || 1;
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .map(([key, count]) => ({
+        key, label: SEGMENT_LABELS[key] || key, count,
+        pct: Math.round((count / total) * 100),
+      }));
+  }, [users]);
+
+  const budgetRows = useMemo(() => {
+    const map = {};
+    for (const l of leads) {
+      const b = l.budget || "Sin especificar";
+      map[b] = (map[b] || 0) + 1;
+    }
+    const total = leads.length || 1;
+    return Object.entries(map)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([key, count]) => ({ key, count, pct: Math.round((count / total) * 100) }));
+  }, [leads]);
+
+  if (loading) return <div className="view-loading">Cargando dashboard…</div>;
+
+  return (
+    <>
+      <section className="admin-topbar">
+        <div>
+          <p className="eyebrow">Admin Console</p>
+          <h1>Centro de control de OCHO.</h1>
+          <p>Visión general del sistema.</p>
+        </div>
+        <button type="button" className="admin-btn primary" onClick={load}>
+          ↻ Refrescar
+        </button>
+      </section>
+
+      <section className="admin-grid stats">
+        {[
+          { label: "Usuarios activos",  value: stats.activeUsers, meta: "con acceso operativo" },
+          { label: "Pendientes",        value: stats.pending,     meta: "en revisión" },
+          { label: "Suspendidos",       value: stats.banned,      meta: "sin acceso" },
+          { label: "Leads totales",     value: stats.totalLeads,  meta: "captados" },
+          { label: "Leads nuevos",      value: stats.newLeads,    meta: "sin contactar" },
+          { label: "Administradores",   value: stats.admins,      meta: "usuarios privilegiados" },
+        ].map(({ label, value, meta }) => (
+          <article key={label} className="admin-card">
+            <div className="admin-stat-label">{label}</div>
+            <div className="admin-stat-value">{value}</div>
+            <div className="admin-stat-meta">{meta}</div>
+          </article>
+        ))}
+      </section>
+
+      <section className="admin-kpis">
+        <article className="admin-card">
+          <h2>Segmentos de usuarios</h2>
+          {!segmentRows.length ? (
+            <p className="admin-muted">Sin datos.</p>
+          ) : segmentRows.map(row => (
+            <div key={row.key} className="segment-row">
+              <span className="segment-label">{row.label}</span>
+              <div className="segment-bar-wrap">
+                <div className="segment-bar" style={{ width: `${row.pct}%` }} />
+              </div>
+              <span className="segment-count">{row.count} · {row.pct}%</span>
+            </div>
+          ))}
+        </article>
+
+        <article className="admin-card">
+          <h2>Distribución de presupuestos</h2>
+          {!budgetRows.length ? (
+            <p className="admin-muted">Sin leads aún.</p>
+          ) : budgetRows.map(row => (
+            <div key={row.key} className="segment-row">
+              <span className="segment-label">{row.key}</span>
+              <div className="segment-bar-wrap">
+                <div className="segment-bar" style={{ width: `${row.pct}%`, background: "var(--admin-warning)" }} />
+              </div>
+              <span className="segment-count">{row.count}</span>
+            </div>
+          ))}
+        </article>
+      </section>
+
+      <section className="admin-full">
+        <article className="admin-card">
+          <h2>Actividad reciente</h2>
+          <div className="admin-list">
+            {!activity.length ? (
+              <p className="admin-muted">Sin actividad reciente.</p>
+            ) : activity.slice(0, 20).map((entry, i) => (
+              <div key={i} className="admin-list-item">
+                <strong>{entry.action}</strong>
+                <span className="admin-muted"> · {entry.entity} #{entry.entity_id}</span>
+                {entry.detail && <p className="admin-muted" style={{ fontSize: "0.82rem", marginTop: 2 }}>{entry.detail}</p>}
+              </div>
+            ))}
+          </div>
+        </article>
+      </section>
+
+      <ToastContainer toasts={toasts} />
+    </>
+  );
+}

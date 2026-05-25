@@ -1,10 +1,10 @@
 import { NavLink, Link } from "react-router-dom";
+import { useNotifications } from "../../hooks/useNotifications.js";
 
 const NAV_PRIMARY = [
   { to: "/panel",          label: "Inicio",    end: true },
   { to: "/panel/projects", label: "Proyectos" },
   { to: "/panel/tasks",    label: "Tareas" },
-  { to: "/panel/activity", label: "Actividad" },
 ];
 
 const NAV_SECONDARY = [
@@ -16,6 +16,7 @@ const NAV_SECONDARY = [
 export default function Sidebar({ user }) {
   const name = user?.full_name || user?.first_name || "Usuario";
   const role = String(user?.role || "").toLowerCase();
+  const { unread } = useNotifications(60_000);
 
   return (
     <aside className="sidebar">
@@ -34,6 +35,16 @@ export default function Sidebar({ user }) {
             {label}
           </NavLink>
         ))}
+
+        <NavLink
+          to="/panel/activity"
+          className={({ isActive }) => `sidebar-link${isActive ? " active" : ""}`}
+        >
+          Actividad
+          {unread > 0 && (
+            <span className="sidebar-badge">{unread > 9 ? "9+" : unread}</span>
+          )}
+        </NavLink>
 
         <div className="sidebar-nav-divider" />
 

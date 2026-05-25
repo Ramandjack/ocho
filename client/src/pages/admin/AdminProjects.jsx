@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { ToastContainer } from "./adminUtils.jsx";
 
 const STATUS_OPTIONS  = ["draft", "active", "completed", "archived"];
@@ -12,29 +13,13 @@ const TYPE_LABEL      = { web: "Web", saas: "SaaS", ecommerce: "Ecommerce", mark
 const EMPTY_FORM = { title: "", description: "", status: "active", type: "web", due_date: "" };
 
 export default function AdminProjects() {
-  const [projects, setProjects]   = useState([]);
-  const [users, setUsers]         = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [form, setForm]           = useState(null);       // null = hidden, {} = new, {...} = edit
-  const [assignModal, setAssign]  = useState(null);       // project to assign
+  const { projects, setProjects, users } = useAdminData();
+  const [form, setForm]               = useState(null);
+  const [assignModal, setAssign]      = useState(null);
   const [assignUuid, setAssignUuid]   = useState("");
   const [assignPerm, setAssignPerm]   = useState("viewer");
-  const [saving, setSaving]       = useState(false);
+  const [saving, setSaving]           = useState(false);
   const { toasts, show } = useToast();
-
-  const load = useCallback(async () => {
-    try {
-      const [pRes, uRes] = await Promise.all([
-        apiFetch("/api/admin/projects"),
-        apiFetch("/api/admin/users"),
-      ]);
-      setProjects(pRes.projects ?? []);
-      setUsers(uRes.users ?? []);
-    } catch (err) { show(err.message, "danger"); }
-    finally { setLoading(false); }
-  }, [show]);
-
-  useEffect(() => { load(); }, [load]);
 
   function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -86,8 +71,6 @@ export default function AdminProjects() {
     } catch (err) { show(err.message, "danger"); }
     finally { setSaving(false); }
   }
-
-  if (loading) return <div className="view-loading">Cargando proyectos…</div>;
 
   return (
     <>

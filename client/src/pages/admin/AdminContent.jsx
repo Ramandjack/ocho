@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
-import { usePolling } from "../../hooks/usePolling.js";
 import { useToast } from "../../hooks/useToast.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { ToastContainer, formatDate } from "./adminUtils.jsx";
 
 const TYPES = [
@@ -26,37 +26,21 @@ const EMPTY_FORM = {
 };
 
 export default function AdminContent() {
-  const [items, setItems]         = useState([]);
-  const [loading, setLoading]     = useState(true);
+  const { content, setContent } = useAdminData();
   const [filter, setFilter]       = useState("all");
   const [search, setSearch]       = useState("");
-  const [modal, setModal]         = useState(null);   // null | "create" | "edit"
+  const [modal, setModal]         = useState(null);
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm]           = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const { toasts, show }          = useToast();
 
-  // Bloquea scroll del body cuando el modal está abierto
   useEffect(() => {
     if (modal) {
       document.body.style.overflow = "hidden";
       return () => { document.body.style.overflow = ""; };
     }
   }, [modal]);
-
-  async function load() {
-    try {
-      const r = await apiFetch("/api/admin/content");
-      if (r.success) setItems(r.content || []);
-    } catch {
-      show("Error cargando contenidos", "error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { load(); }, []);
-  usePolling(load, 60_000);
 
   function openCreate(typePreset) {
     setForm({ ...EMPTY_FORM, type: typePreset || "article" });
@@ -87,25 +71,33 @@ export default function AdminContent() {
     if (!form.title.trim()) { show("El título es obligatorio", "error"); return; }
     setSubmitting(true);
     try {
-      let r;
       if (modal === "create") {
-        r = await apiFetch("/api/admin/content", {
+        const r = await apiFetch("/api/admin/content", {
           method: "POST",
           body: JSON.stringify(form),
         });
+        if (r.success) {
+          setContent(prev => [r.content, ...prev]);
+          show("Contenido creado", "success");
+          closeModal();
+        } else {
+          show(r.message || "Error al guardar", "error");
+        }
       } else {
         const id = editTarget.uuid || editTarget.nocodb_id || editTarget.id;
-        r = await apiFetch(`/api/admin/content/${id}`, {
+        const r = await apiFetch(`/api/admin/content/${id}`, {
           method: "PATCH",
           body: JSON.stringify(form),
         });
-      }
-      if (r.success) {
-        show(modal === "create" ? "Contenido creado" : "Contenido actualizado", "success");
-        closeModal();
-        load();
-      } else {
-        show(r.message || "Error al guardar", "error");
+        if (r.success) {
+          setContent(prev => prev.map(i =>
+            (i.uuid || i.id) === (editTarget.uuid || editTarget.id) ? { ...i, ...form } : i
+          ));
+          show("Contenido actualizado", "success");
+          closeModal();
+        } else {
+          show(r.message || "Error al guardar", "error");
+        }
       }
     } catch (err) {
       show(err.message || "Error de conexión", "error");
@@ -118,8 +110,14 @@ export default function AdminContent() {
     const id = item.uuid || item.nocodb_id || item.id;
     try {
       const r = await apiFetch(`/api/admin/content/${id}/publish`, { method: "PATCH" });
-      if (r.success) { show(`"${item.title}" publicado`, "success"); load(); }
-      else show(r.message || "Error al publicar", "error");
+      if (r.success) {
+        setContent(prev => prev.map(i =>
+          (i.uuid || i.id) === (item.uuid || item.id)
+            ? { ...i, status: "published", published_at: new Date().toISOString() }
+            : i
+        ));
+        show(`"${item.title}" publicado`, "success");
+      } else show(r.message || "Error al publicar", "error");
     } catch (err) { show(err.message || "Error de conexión", "error"); }
   }
 
@@ -130,8 +128,12 @@ export default function AdminContent() {
         method: "PATCH",
         body: JSON.stringify({ status }),
       });
-      if (r.success) { show("Estado actualizado", "success"); load(); }
-      else show(r.message || "Error", "error");
+      if (r.success) {
+        setContent(prev => prev.map(i =>
+          (i.uuid || i.id) === (item.uuid || item.id) ? { ...i, status } : i
+        ));
+        show("Estado actualizado", "success");
+      } else show(r.message || "Error", "error");
     } catch (err) { show(err.message || "Error de conexión", "error"); }
   }
 
@@ -140,21 +142,23 @@ export default function AdminContent() {
     const id = item.uuid || item.nocodb_id || item.id;
     try {
       const r = await apiFetch(`/api/admin/content/${id}`, { method: "DELETE" });
-      if (r.success) { show("Eliminado", "success"); load(); }
-      else show(r.message || "Error", "error");
+      if (r.success) {
+        setContent(prev => prev.filter(i => (i.uuid || i.id) !== (item.uuid || item.id)));
+        show("Eliminado", "success");
+      } else show(r.message || "Error", "error");
     } catch (err) { show(err.message || "Error de conexión", "error"); }
   }
 
-  const filtered = items.filter(it => {
+  const filtered = content.filter(it => {
     const matchType   = filter === "all" || it.type === filter;
     const matchSearch = !search || it.title?.toLowerCase().includes(search.toLowerCase()) ||
                         it.author_name?.toLowerCase().includes(search.toLowerCase());
     return matchType && matchSearch;
   });
 
-  const countBy = type => items.filter(i => i.type === type).length;
-  const published = items.filter(i => i.status === "published").length;
-  const drafts    = items.filter(i => i.status === "draft").length;
+  const countBy = type => content.filter(i => i.type === type).length;
+  const published = content.filter(i => i.status === "published").length;
+  const drafts    = content.filter(i => i.status === "draft").length;
 
   function statusBadge(status) {
     const cls = { published: "green", draft: "yellow", archived: "gray" }[status] || "gray";
@@ -166,13 +170,10 @@ export default function AdminContent() {
     return <span className={`admin-badge content-type-${cls}`}>{TYPE_LABELS[type] || type}</span>;
   }
 
-  if (loading) return <div className="admin-loading">Cargando contenidos…</div>;
-
   return (
     <div className="admin-section">
       <ToastContainer toasts={toasts} />
 
-      {/* Header */}
       <div className="admin-section-header">
         <h2>Gestión de contenidos</h2>
         <div className="content-header-actions">
@@ -188,10 +189,9 @@ export default function AdminContent() {
         </div>
       </div>
 
-      {/* Métricas */}
       <div className="admin-stats-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(130px,1fr))" }}>
         <div className="admin-stat-card">
-          <div className="admin-stat-value">{items.length}</div>
+          <div className="admin-stat-value">{content.length}</div>
           <div className="admin-stat-label">Total</div>
         </div>
         <div className="admin-stat-card">
@@ -210,11 +210,10 @@ export default function AdminContent() {
         ))}
       </div>
 
-      {/* Filtros */}
       <div className="content-filters">
         <div className="content-type-tabs">
           <button className={`content-tab${filter === "all" ? " active" : ""}`} onClick={() => setFilter("all")}>
-            Todos ({items.length})
+            Todos ({content.length})
           </button>
           {TYPES.map(t => (
             <button
@@ -234,11 +233,10 @@ export default function AdminContent() {
         />
       </div>
 
-      {/* Tabla */}
       <div className="admin-card">
         {filtered.length === 0 ? (
           <p style={{ color: "var(--text-muted, rgba(255,255,255,.5))", fontSize: ".875rem", padding: "1rem 0" }}>
-            {items.length === 0 ? "Todavía no hay contenidos. ¡Creá el primero!" : "Sin resultados para este filtro."}
+            {content.length === 0 ? "Todavía no hay contenidos. ¡Creá el primero!" : "Sin resultados para este filtro."}
           </p>
         ) : (
           <div className="admin-table-wrap">
@@ -291,7 +289,6 @@ export default function AdminContent() {
         )}
       </div>
 
-      {/* Modal crear / editar */}
       {modal && (
         <div className="admin-modal-overlay" onClick={closeModal}>
           <div className="admin-modal content-modal" onClick={e => e.stopPropagation()}>

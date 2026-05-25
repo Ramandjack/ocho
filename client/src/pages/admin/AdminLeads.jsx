@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { formatDate, exportCSV, ToastContainer, ModalRow } from "./adminUtils.jsx";
 
 function stageClass(stage) {
@@ -15,25 +16,11 @@ function leadId(lead) {
 }
 
 export default function AdminLeads() {
-  const [leads, setLeads]         = useState([]);
-  const [search, setSearch]       = useState("");
-  const [stageFilter, setStage]   = useState("all");
-  const [modal, setModal]         = useState(null);
-  const [loading, setLoading]     = useState(true);
+  const { leads, setLeads } = useAdminData();
+  const [search, setSearch]     = useState("");
+  const [stageFilter, setStage] = useState("all");
+  const [modal, setModal]       = useState(null);
   const { toasts, show } = useToast();
-
-  const load = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/admin/leads");
-      setLeads(res.leads ?? []);
-    } catch (err) {
-      show(err.message, "danger");
-    } finally {
-      setLoading(false);
-    }
-  }, [show]);
-
-  useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
@@ -51,8 +38,6 @@ export default function AdminLeads() {
       show(`Lead → "${newStage}"`, "success");
     } catch (err) { show(err.message, "danger"); }
   }
-
-  if (loading) return <div className="view-loading">Cargando leads…</div>;
 
   return (
     <>

@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { ToastContainer } from "./adminUtils.jsx";
 
 const STATUS_OPTIONS   = ["pending", "in_progress", "done"];
@@ -11,32 +12,13 @@ const PRIORITY_LABEL   = { low: "baja", medium: "media", high: "alta" };
 const EMPTY = { title: "", description: "", status: "pending", priority: "medium", project_id: "", assigned_to: "", due_date: "" };
 
 export default function AdminTasks() {
-  const [tasks, setTasks]       = useState([]);
-  const [users, setUsers]       = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [form, setForm]         = useState(null);
-  const [saving, setSaving]     = useState(false);
+  const { tasks, setTasks, users, projects } = useAdminData();
+  const [form, setForm]   = useState(null);
+  const [saving, setSaving] = useState(false);
   const { toasts, show } = useToast();
 
   const userMap    = Object.fromEntries(users.map(u => [u.uuid, u.full_name || u.email]));
   const projectMap = Object.fromEntries(projects.map(p => [String(p.nocodb_id ?? p.id), p.title]));
-
-  const load = useCallback(async () => {
-    try {
-      const [tRes, uRes, pRes] = await Promise.all([
-        apiFetch("/api/admin/tasks"),
-        apiFetch("/api/admin/users"),
-        apiFetch("/api/admin/projects"),
-      ]);
-      setTasks(tRes.tasks ?? []);
-      setUsers(uRes.users ?? []);
-      setProjects(pRes.projects ?? []);
-    } catch (err) { show(err.message, "danger"); }
-    finally { setLoading(false); }
-  }, [show]);
-
-  useEffect(() => { load(); }, [load]);
 
   function setF(k, v) { setForm(f => ({ ...f, [k]: v })); }
 
@@ -76,8 +58,6 @@ export default function AdminTasks() {
       show("Tarea eliminada", "success");
     } catch (err) { show(err.message, "danger"); }
   }
-
-  if (loading) return <div className="view-loading">Cargando tareas…</div>;
 
   return (
     <>

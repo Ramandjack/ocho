@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
-import { usePolling } from "../../hooks/usePolling.js";
 import { useToast } from "../../hooks/useToast.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { ToastContainer, formatDate } from "./adminUtils.jsx";
 
 const SECURITY_EVENTS = new Set([
@@ -19,37 +19,18 @@ function MetricCard({ label, value, sub, warn }) {
 }
 
 export default function AdminSecurity() {
-  const [users, setUsers]           = useState([]);
-  const [activity, setActivity]     = useState([]);
-  const [loading, setLoading]       = useState(true);
+  const { users, activity } = useAdminData();
   const [resetTarget, setResetTarget] = useState(null);
-  const [newPwd, setNewPwd]         = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const { toasts, show }            = useToast();
+  const [newPwd, setNewPwd]           = useState("");
+  const [submitting, setSubmitting]   = useState(false);
+  const { toasts, show }              = useToast();
 
-  async function load() {
-    try {
-      const [uRes, aRes] = await Promise.all([
-        apiFetch("/api/admin/users"),
-        apiFetch("/api/admin/activity"),
-      ]);
-      if (uRes.success) setUsers(uRes.users || []);
-      if (aRes.success) setActivity(aRes.logs || []);
-    } catch {
-      show("Error cargando datos de seguridad", "error");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => { load(); }, []);
   useEffect(() => {
     if (resetTarget) {
       document.body.style.overflow = "hidden";
       return () => { document.body.style.overflow = ""; };
     }
   }, [resetTarget]);
-  usePolling(load, 60_000);
 
   const banned       = users.filter(u => u.status === "banned");
   const pending      = users.filter(u => u.status === "pending");
@@ -99,8 +80,6 @@ export default function AdminSecurity() {
     return map[action] || action;
   }
 
-  if (loading) return <div className="admin-loading">Cargando seguridad…</div>;
-
   return (
     <div className="admin-section">
       <ToastContainer toasts={toasts} />
@@ -109,7 +88,6 @@ export default function AdminSecurity() {
         <h2>Seguridad y control de acceso</h2>
       </div>
 
-      {/* Métricas */}
       <div className="admin-stats-grid">
         <MetricCard label="Usuarios baneados"    value={banned.length}      warn={banned.length > 0} />
         <MetricCard label="Pendientes de activar" value={pending.length}     warn={pending.length > 0} />
@@ -117,7 +95,6 @@ export default function AdminSecurity() {
         <MetricCard label="Total usuarios"         value={users.length} />
       </div>
 
-      {/* Política de contraseñas */}
       <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
         <h3 className="admin-card-title">Política de seguridad</h3>
         <div className="admin-policy-grid">
@@ -140,7 +117,6 @@ export default function AdminSecurity() {
         </div>
       </div>
 
-      {/* Gestión de contraseñas */}
       <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
         <h3 className="admin-card-title">Resetear contraseña de usuario</h3>
         <div className="admin-table-wrap">
@@ -176,7 +152,6 @@ export default function AdminSecurity() {
         </div>
       </div>
 
-      {/* Accesos sospechosos */}
       {(banned.length > 0 || neverLogged.length > 0) && (
         <div className="admin-card" style={{ marginBottom: "1.5rem" }}>
           <h3 className="admin-card-title">Accesos sospechosos / alertas</h3>
@@ -209,7 +184,6 @@ export default function AdminSecurity() {
         </div>
       )}
 
-      {/* Log de eventos de seguridad */}
       <div className="admin-card">
         <h3 className="admin-card-title">Log de eventos de seguridad</h3>
         {securityLogs.length === 0 ? (
@@ -240,7 +214,6 @@ export default function AdminSecurity() {
         )}
       </div>
 
-      {/* Modal reset contraseña */}
       {resetTarget && (
         <div className="admin-modal-overlay" onClick={() => setResetTarget(null)}>
           <div className="admin-modal" onClick={e => e.stopPropagation()}>

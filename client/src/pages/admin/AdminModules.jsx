@@ -1,34 +1,19 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { ToastContainer } from "./adminUtils.jsx";
 
 const EMPTY = { key: "", label: "", description: "", icon: "", active: true };
 
 export default function AdminModules() {
-  const [modules, setModules]   = useState([]);
-  const [users, setUsers]       = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const [form, setForm]         = useState(null);
-  const [assignModal, setAssign] = useState(null);
-  const [assignUuid, setAssignUuid] = useState("");
+  const { modules, setModules, users } = useAdminData();
+  const [form, setForm]               = useState(null);
+  const [assignModal, setAssign]      = useState(null);
+  const [assignUuid, setAssignUuid]   = useState("");
   const [assignEnabled, setAssignEnabled] = useState(true);
-  const [saving, setSaving]     = useState(false);
+  const [saving, setSaving]           = useState(false);
   const { toasts, show } = useToast();
-
-  const load = useCallback(async () => {
-    try {
-      const [mRes, uRes] = await Promise.all([
-        apiFetch("/api/admin/modules"),
-        apiFetch("/api/admin/users"),
-      ]);
-      setModules(mRes.modules ?? []);
-      setUsers(uRes.users ?? []);
-    } catch (err) { show(err.message, "danger"); }
-    finally { setLoading(false); }
-  }, [show]);
-
-  useEffect(() => { load(); }, [load]);
 
   async function toggle(id, current) {
     try {
@@ -68,8 +53,6 @@ export default function AdminModules() {
     } catch (err) { show(err.message, "danger"); }
     finally { setSaving(false); }
   }
-
-  if (loading) return <div className="view-loading">Cargando módulos…</div>;
 
   return (
     <>

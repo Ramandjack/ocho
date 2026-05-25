@@ -106,6 +106,9 @@ const TABLE_TTL = {
   modules:      5 * 60_000,
   user_modules: 5 * 60_000,
   users:        2 * 60_000,
+  projects:     2 * 60_000,
+  tasks:        2 * 60_000,
+  leads:        2 * 60_000,
 };
 
 const _cache    = new Map();
@@ -276,9 +279,9 @@ async function sendNotificationToMany(userUuids, type, title, message, link = ""
    EXPORTS
 =========================== */
 
-// Precalienta las tablas más usadas para que el primer request sea rápido
+// Precalienta todas las tablas del admin para que el primer request sea rápido
 async function warmCache() {
-  const tables = ["users", "content", "modules", "user_modules"];
+  const tables = ["users", "leads", "projects", "tasks", "modules", "user_modules", "content", "activity_log"];
   await Promise.allSettled(
     tables.filter(t => TABLES[t]).map(t => getAll(t).catch(() => {}))
   );

@@ -1,9 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
-import { apiFetch } from "../../lib/api.js";
-import { useToast } from "../../hooks/useToast.js";
-import { ToastContainer, formatDate } from "./adminUtils.jsx";
-import { usePolling } from "../../hooks/usePolling.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
+import { formatDate } from "./adminUtils.jsx";
 
 const SEGMENT_LABELS = {
   newsletter_only:    "Newsletter",
@@ -24,34 +22,7 @@ const TYPE_COLOR = {
 };
 
 export default function AdminDashboard() {
-  const [users, setUsers]       = useState([]);
-  const [leads, setLeads]       = useState([]);
-  const [activity, setActivity] = useState([]);
-  const [content, setContent]   = useState([]);
-  const [loading, setLoading]   = useState(true);
-  const { toasts, show } = useToast();
-
-  const load = useCallback(async () => {
-    try {
-      const [uRes, lRes, aRes, cRes] = await Promise.all([
-        apiFetch("/api/admin/users"),
-        apiFetch("/api/admin/leads"),
-        apiFetch("/api/admin/activity"),
-        apiFetch("/api/admin/content"),
-      ]);
-      setUsers(uRes.users    ?? []);
-      setLeads(lRes.leads    ?? []);
-      setActivity(aRes.logs  ?? []);
-      setContent(cRes.content ?? []);
-    } catch (err) {
-      show(`Error: ${err.message}`, "danger");
-    } finally {
-      setLoading(false);
-    }
-  }, [show]);
-
-  useEffect(() => { load(); }, [load]);
-  usePolling(load, 60_000);
+  const { users, leads, activity, content, refresh } = useAdminData();
 
   const stats = useMemo(() => ({
     activeUsers:      users.filter(u => (u.status || "active") === "active").length,
@@ -105,8 +76,6 @@ export default function AdminDashboard() {
       .map(([key, count]) => ({ key, count, pct: Math.round((count / total) * 100) }));
   }, [leads]);
 
-  if (loading) return <div className="view-loading">Cargando dashboard…</div>;
-
   return (
     <>
       <section className="admin-topbar">
@@ -115,7 +84,7 @@ export default function AdminDashboard() {
           <h1>Centro de control de OCHO.</h1>
           <p>Visión general del sistema.</p>
         </div>
-        <button type="button" className="admin-btn primary" onClick={load}>
+        <button type="button" className="admin-btn primary" onClick={() => refresh()}>
           ↻ Refrescar
         </button>
       </section>
@@ -137,7 +106,6 @@ export default function AdminDashboard() {
         ))}
       </section>
 
-      {/* Contenido reciente */}
       <section className="admin-full">
         <article className="admin-card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -263,8 +231,6 @@ export default function AdminDashboard() {
           </div>
         </article>
       </section>
-
-      <ToastContainer toasts={toasts} />
     </>
   );
 }

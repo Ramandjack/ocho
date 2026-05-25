@@ -1,5 +1,6 @@
 import { NavLink, Link, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
+import { AdminDataProvider, useAdminData } from "../../context/AdminDataContext.jsx";
 import "./admin-console.css";
 
 const NAV = [
@@ -12,6 +13,25 @@ const NAV = [
   { to: "/admin/content",   label: "Contenidos" },
   { to: "/admin/security",  label: "Seguridad" },
 ];
+
+function AdminSkeleton() {
+  return (
+    <div className="admin-skeleton">
+      <div className="admin-skeleton-topbar skeleton-shimmer" />
+      <div className="admin-skeleton-cards">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="admin-skeleton-card skeleton-shimmer" />
+        ))}
+      </div>
+      <div className="admin-skeleton-table skeleton-shimmer" />
+    </div>
+  );
+}
+
+function AdminMain() {
+  const { ready } = useAdminData();
+  return ready ? <Outlet /> : <AdminSkeleton />;
+}
 
 export default function AdminLayout() {
   const { user } = useAuth();
@@ -55,7 +75,9 @@ export default function AdminLayout() {
         </aside>
 
         <main className="admin-main">
-          <Outlet />
+          <AdminDataProvider>
+            <AdminMain />
+          </AdminDataProvider>
         </main>
       </div>
     </div>

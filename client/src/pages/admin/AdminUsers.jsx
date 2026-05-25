@@ -1,29 +1,16 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
+import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { normalizeRole, getInitials, formatDate, exportCSV, ToastContainer, ModalRow } from "./adminUtils.jsx";
 
 export default function AdminUsers() {
-  const [users, setUsers]             = useState([]);
-  const [search, setSearch]           = useState("");
-  const [roleFilter, setRoleFilter]   = useState("all");
+  const { users, setUsers } = useAdminData();
+  const [search, setSearch]             = useState("");
+  const [roleFilter, setRoleFilter]     = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [modal, setModal]             = useState(null);
-  const [loading, setLoading]         = useState(true);
+  const [modal, setModal]               = useState(null);
   const { toasts, show } = useToast();
-
-  const load = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/admin/users");
-      setUsers(res.users ?? []);
-    } catch (err) {
-      show(`Error: ${err.message}`, "danger");
-    } finally {
-      setLoading(false);
-    }
-  }, [show]);
-
-  useEffect(() => { load(); }, [load]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
@@ -66,8 +53,6 @@ export default function AdminUsers() {
       setModal(null);
     } catch (err) { show(err.message, "danger"); }
   }
-
-  if (loading) return <div className="view-loading">Cargando usuarios…</div>;
 
   return (
     <>

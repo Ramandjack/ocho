@@ -1069,3 +1069,49 @@
   font-size: 0.82rem;
   line-height: 1.5;
 }
+
+/* ── Skeleton shimmer ──────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--as2) 25%,
+    rgba(255,255,255,.04) 50%,
+    var(--as2) 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.4s infinite linear;
+  border-radius: 8px;
+}
+
+.admin-skeleton {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-skeleton-topbar {
+  height: 88px;
+  border-radius: 10px;
+}
+
+.admin-skeleton-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.admin-skeleton-card {
+  height: 80px;
+  border-radius: 10px;
+}
+
+.admin-skeleton-table {
+  height: 320px;
+  border-radius: 10px;
+}

@@ -49,13 +49,13 @@ export default function DashboardView() {
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      apiFetch("/api/user/dashboard").then(r => r.dashboard).catch(() => null),
-      apiFetch("/api/user/content").then(r => r.content ?? []).catch(() => []),
-    ]).then(([dashboard, contentItems]) => {
-      setData(dashboard);
-      setContent(contentItems.slice(0, 3));
-    }).finally(() => setLoading(false));
+    apiFetch("/api/user/dashboard")
+      .then(r => {
+        setData(r.dashboard);
+        setContent(r.dashboard?.recent_content ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const firstName = user?.first_name || user?.full_name?.split(" ")[0] || "Usuario";

@@ -588,4 +588,6 @@ app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://127.0.0.1:${PORT}`);
   console.log(`Entorno: ${NODE_ENV}`);
   if (spaReady) console.log(`SPA React: http://127.0.0.1:${PORT}/app/login`);
+  // Precalentamos cache en background para que el primer usuario no espere
+  db.warmCache().then(() => console.log("Cache precalentado.")).catch(() => {});
 });

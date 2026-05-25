@@ -99,7 +99,19 @@ function extractList(result) {
 =========================== */
 
 const CACHE_TTL_MS = 60_000;
-const _cache = new Map();
+
+// Tablas estables → TTL más largo
+const TABLE_TTL = {
+  content:      5 * 60_000,
+  modules:      5 * 60_000,
+  user_modules: 5 * 60_000,
+  users:        2 * 60_000,
+};
+
+const _cache    = new Map();
+const _inflight = new Map(); // deduplicación de requests en vuelo
+
+function _ttl(table) { return TABLE_TTL[table] || CACHE_TTL_MS; }
 
 function _cacheGet(key) {
   const entry = _cache.get(key);
@@ -107,14 +119,29 @@ function _cacheGet(key) {
   return entry.data;
 }
 
-function _cacheSet(key, data) {
-  _cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
+function _cacheSet(key, data, ttl) {
+  _cache.set(key, { data, expiresAt: Date.now() + ttl });
 }
 
 function clearTableCache(table) {
   for (const key of _cache.keys()) {
     if (key.startsWith(`${table}::`)) _cache.delete(key);
   }
+}
+
+// Ejecuta fetcher una sola vez aunque lleguen N llamadas simultáneas al mismo key
+function _dedupe(key, ttl, fetcher) {
+  const cached = _cacheGet(key);
+  if (cached) return Promise.resolve(cached);
+
+  if (_inflight.has(key)) return _inflight.get(key);
+
+  const promise = fetcher()
+    .then(data => { _cacheSet(key, data, ttl); _inflight.delete(key); return data; })
+    .catch(err  => { _inflight.delete(key); throw err; });
+
+  _inflight.set(key, promise);
+  return promise;
 }
 
 /* ===========================
@@ -142,20 +169,12 @@ async function fetchAllPages(base, params = {}) {
 
 async function getAll(table, params = {}) {
   const key = `${table}::all::${JSON.stringify(params)}`;
-  const cached = _cacheGet(key);
-  if (cached) return cached;
-  const data = await fetchAllPages(tableUrl(table), params);
-  _cacheSet(key, data);
-  return data;
+  return _dedupe(key, _ttl(table), () => fetchAllPages(tableUrl(table), params));
 }
 
 async function getWhere(table, where) {
   const key = `${table}::where::${where}`;
-  const cached = _cacheGet(key);
-  if (cached) return cached;
-  const data = await fetchAllPages(tableUrl(table), { where });
-  _cacheSet(key, data);
-  return data;
+  return _dedupe(key, _ttl(table), () => fetchAllPages(tableUrl(table), { where }));
 }
 
 /**
@@ -257,6 +276,14 @@ async function sendNotificationToMany(userUuids, type, title, message, link = ""
    EXPORTS
 =========================== */
 
+// Precalienta las tablas más usadas para que el primer request sea rápido
+async function warmCache() {
+  const tables = ["users", "content", "modules", "user_modules"];
+  await Promise.allSettled(
+    tables.filter(t => TABLES[t]).map(t => getAll(t).catch(() => {}))
+  );
+}
+
 export const db = {
   getAll,
   getWhere,
@@ -269,5 +296,6 @@ export const db = {
   sendNotification,
   sendNotificationToMany,
   clearTableCache,
+  warmCache,
   TABLES,
 };

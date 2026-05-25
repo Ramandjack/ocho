@@ -373,11 +373,17 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
   try {
     const uuid = req.user.sub;
 
-    const [assignments, tasks, notifications] = await Promise.all([
+    const [assignments, tasks, notifications, allContent] = await Promise.all([
       db.getWhere("user_projects", `(user_uuid,eq,${uuid})`),
       db.getWhere("tasks",         `(assigned_to,eq,${uuid})`),
       db.getWhere("notifications", `(user_uuid,eq,${uuid})`),
+      db.getAll("content"),
     ]);
+
+    const recentContent = allContent
+      .filter(c => c.status === "published")
+      .sort((a, b) => new Date(b.published_at || b.updated_at || b.CreatedAt || 0) - new Date(a.published_at || a.updated_at || a.CreatedAt || 0))
+      .slice(0, 3);
 
     return res.json({
       success: true,
@@ -390,6 +396,7 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
         notifications_unread: notifications.filter(n => !n.read).length,
         recent_notifications: notifications.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0)).slice(0, 5),
         recent_tasks:         tasks.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0)).slice(0, 5),
+        recent_content:       recentContent,
       },
     });
   } catch (err) {

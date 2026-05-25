@@ -184,12 +184,13 @@ async function insert(table, fields) {
 
 async function update(table, id, fields) {
   const base = tableUrl(table);
-  const result = await ncFetch(`${base}/${id}`, {
+  const result = await ncFetch(base, {
     method: "PATCH",
-    body: JSON.stringify({ fields }),
+    body: JSON.stringify([{ id, fields }]),
   });
   clearTableCache(table);
-  return flatten(result);
+  const records = extractList(result);
+  return records[0] ?? flatten(result);
 }
 
 async function remove(table, id) {

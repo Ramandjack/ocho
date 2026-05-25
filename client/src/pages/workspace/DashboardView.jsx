@@ -2,6 +2,18 @@ import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { apiFetch } from "../../lib/api.js";
 
+const TYPE_COLOR = {
+  article:    { bg: "rgba(96,165,250,.12)",  text: "#60a5fa" },
+  collection: { bg: "rgba(167,139,250,.12)", text: "#a78bfa" },
+  toolkit:    { bg: "rgba(45,212,191,.12)",  text: "#2dd4bf" },
+  newsletter: { bg: "rgba(251,146,60,.12)",  text: "#fb923c" },
+};
+
+const TYPE_LABEL = {
+  article: "Artículo", collection: "Colección",
+  toolkit: "Toolkit",  newsletter: "Newsletter",
+};
+
 const STATUS_LABEL = {
   pending:     "pendiente",
   in_progress: "en curso",
@@ -33,13 +45,17 @@ const TAGS = ["CONTENIDO", "RECURSOS EXCLUSIVOS", "EDITORIAL", "CRM COMMUNITY"];
 export default function DashboardView() {
   const { user }                    = useOutletContext();
   const [data, setData]             = useState(null);
+  const [content, setContent]       = useState([]);
   const [loading, setLoading]       = useState(true);
 
   useEffect(() => {
-    apiFetch("/api/user/dashboard")
-      .then(res => setData(res.dashboard))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    Promise.all([
+      apiFetch("/api/user/dashboard").then(r => r.dashboard).catch(() => null),
+      apiFetch("/api/user/content").then(r => r.content ?? []).catch(() => []),
+    ]).then(([dashboard, contentItems]) => {
+      setData(dashboard);
+      setContent(contentItems.slice(0, 3));
+    }).finally(() => setLoading(false));
   }, []);
 
   const firstName = user?.first_name || user?.full_name?.split(" ")[0] || "Usuario";
@@ -144,6 +160,46 @@ export default function DashboardView() {
           )}
         </section>
       </div>
+
+      {/* ── Contenido reciente ───────────────────────────────── */}
+      {content.length > 0 && (
+        <section className="dashboard-content-section">
+          <div className="dashboard-section-head">
+            <h2 className="dashboard-section-title">Contenido reciente</h2>
+            <Link to="/panel/content" className="dashboard-section-link">Ver todo</Link>
+          </div>
+
+          <div className="dashboard-content-grid">
+            {content.map(item => {
+              const color = TYPE_COLOR[item.type] || { bg: "rgba(255,255,255,.06)", text: "rgba(255,255,255,.5)" };
+              const date  = item.published_at || item.updated_at || item.CreatedAt;
+              return (
+                <Link key={item.uuid || item.id} to="/panel/content" className="dashboard-content-card">
+                  {item.cover_url && (
+                    <div className="dashboard-content-cover">
+                      <img src={item.cover_url} alt={item.title} loading="lazy" />
+                    </div>
+                  )}
+                  <div className="dashboard-content-body">
+                    <span className="content-badge" style={{ background: color.bg, color: color.text }}>
+                      {TYPE_LABEL[item.type] || item.type}
+                    </span>
+                    <p className="dashboard-content-title">{item.title}</p>
+                    {item.excerpt && (
+                      <p className="dashboard-content-excerpt">{item.excerpt}</p>
+                    )}
+                    {date && (
+                      <span className="dashboard-content-date">
+                        {new Date(date).toLocaleDateString("es-AR", { day: "numeric", month: "short" })}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
     </div>
   );

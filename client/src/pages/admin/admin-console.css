@@ -644,3 +644,142 @@
   font-size: 0.92rem;
   animation: adminFadeInUp 0.25s ease;
 }
+
+/* ========== Security page ========== */
+
+.admin-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.admin-stat-card {
+  background: var(--as2);
+  border: 1px solid var(--ab);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.admin-stat-card.warn {
+  border-color: var(--admin-warning);
+  background: rgba(255, 211, 107, 0.07);
+}
+
+.admin-stat-label {
+  font-size: 0.78rem;
+  color: var(--am);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+}
+
+.admin-stat-sub {
+  font-size: 0.75rem;
+  color: var(--am);
+  margin-top: 2px;
+}
+
+.admin-card {
+  background: var(--as);
+  border: 1px solid var(--ab);
+  border-radius: 16px;
+  padding: 20px 22px;
+}
+
+.admin-card-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin: 0 0 1rem;
+  color: var(--aa);
+}
+
+.admin-policy-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.admin-policy-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--as2);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.admin-policy-key {
+  font-size: 0.73rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--am);
+}
+
+.admin-policy-val {
+  font-size: 0.88rem;
+  color: var(--aa);
+  font-weight: 600;
+}
+
+.admin-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.admin-badge.green  { background: rgba(125, 211, 167, 0.15); color: var(--aok); }
+.admin-badge.red    { background: rgba(255, 107, 107, 0.15); color: var(--ad); }
+.admin-badge.yellow { background: rgba(255, 211, 107, 0.15); color: var(--aw); }
+.admin-badge.gray   { background: var(--as2); color: var(--am); }
+
+.admin-btn-sm {
+  padding: 4px 12px;
+  font-size: 0.78rem;
+  border-radius: 8px;
+  border: 1px solid var(--ab);
+  background: var(--as2);
+  color: var(--aa);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.admin-btn-sm:hover { background: var(--ab); }
+
+.admin-alert-label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--am);
+  margin: 0 0 6px;
+}
+
+.admin-alert-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.admin-alert-item {
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+}
+
+.admin-alert-item.red    { background: rgba(255, 107, 107, 0.1); color: var(--ad); }
+.admin-alert-item.yellow { background: rgba(255, 211, 107, 0.1); color: var(--aw); }
+
+.admin-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px;
+  color: var(--am);
+  font-size: 0.9rem;
+}

@@ -511,6 +511,23 @@ app.delete("/api/admin/users/:uuid", authMiddleware, requireAdmin, async (req, r
   }
 });
 
+app.post("/api/admin/users/:uuid/reset-password", authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { uuid }        = req.params;
+    const { new_password } = req.body || {};
+    if (!new_password || String(new_password).length < 8) {
+      return res.status(400).json({ success: false, message: "La contraseña debe tener al menos 8 caracteres" });
+    }
+    const hashed = await bcrypt.hash(String(new_password), 10);
+    await updateUserFieldInNoco(uuid, { password_hash: hashed });
+    await db.logActivity(req.user.sub, "reset_password", "user", uuid, "Contraseña reseteada por admin");
+    return res.json({ success: true, message: "Contraseña actualizada" });
+  } catch (error) {
+    console.error("Error en reset-password:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 /* =========================
    ADMIN — LEADS
 ========================= */

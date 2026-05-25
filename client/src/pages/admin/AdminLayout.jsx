@@ -3,12 +3,13 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import "./admin-console.css";
 
 const NAV = [
-  { to: "/admin",          label: "Dashboard",  end: true },
-  { to: "/admin/users",    label: "Usuarios" },
-  { to: "/admin/projects", label: "Proyectos" },
-  { to: "/admin/tasks",    label: "Tareas" },
-  { to: "/admin/modules",  label: "Módulos" },
-  { to: "/admin/leads",    label: "Leads" },
+  { to: "/admin",           label: "Dashboard",  end: true },
+  { to: "/admin/users",     label: "Usuarios" },
+  { to: "/admin/projects",  label: "Proyectos" },
+  { to: "/admin/tasks",     label: "Tareas" },
+  { to: "/admin/modules",   label: "Módulos" },
+  { to: "/admin/leads",     label: "Leads" },
+  { to: "/admin/security",  label: "Seguridad" },
 ];
 
 export default function AdminLayout() {

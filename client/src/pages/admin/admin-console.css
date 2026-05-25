@@ -784,6 +784,52 @@
   font-size: 0.9rem;
 }
 
+/* ========== Dashboard content rows ========== */
+
+.admin-link-sm {
+  font-size: 0.8rem;
+  color: var(--am);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.admin-link-sm:hover { color: var(--aa); }
+
+.content-dash-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.content-dash-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.content-dash-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+.content-dash-meta {
+  font-size: 0.75rem;
+  color: var(--am);
+}
+
+.content-dash-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 /* ========== Content page ========== */
 
 .content-header-actions {

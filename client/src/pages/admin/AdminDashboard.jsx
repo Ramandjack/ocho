@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
-import { ToastContainer } from "./adminUtils.jsx";
+import { ToastContainer, formatDate } from "./adminUtils.jsx";
 import { usePolling } from "../../hooks/usePolling.js";
 
 const SEGMENT_LABELS = {
@@ -12,23 +13,36 @@ const SEGMENT_LABELS = {
   marketing_leads:    "Marketing",
 };
 
+const TYPE_LABELS = {
+  article: "Artículo", collection: "Colección",
+  toolkit: "Toolkit",  newsletter: "Newsletter",
+};
+
+const TYPE_COLOR = {
+  article: "#60a5fa", collection: "#a78bfa",
+  toolkit: "#2dd4bf", newsletter: "#fb923c",
+};
+
 export default function AdminDashboard() {
-  const [users, setUsers]   = useState([]);
-  const [leads, setLeads]   = useState([]);
+  const [users, setUsers]       = useState([]);
+  const [leads, setLeads]       = useState([]);
   const [activity, setActivity] = useState([]);
+  const [content, setContent]   = useState([]);
   const [loading, setLoading]   = useState(true);
   const { toasts, show } = useToast();
 
   const load = useCallback(async () => {
     try {
-      const [uRes, lRes, aRes] = await Promise.all([
+      const [uRes, lRes, aRes, cRes] = await Promise.all([
         apiFetch("/api/admin/users"),
         apiFetch("/api/admin/leads"),
         apiFetch("/api/admin/activity"),
+        apiFetch("/api/admin/content"),
       ]);
-      setUsers(uRes.users  ?? []);
-      setLeads(lRes.leads  ?? []);
-      setActivity(aRes.activity ?? []);
+      setUsers(uRes.users    ?? []);
+      setLeads(lRes.leads    ?? []);
+      setActivity(aRes.logs  ?? []);
+      setContent(cRes.content ?? []);
     } catch (err) {
       show(`Error: ${err.message}`, "danger");
     } finally {
@@ -40,13 +54,28 @@ export default function AdminDashboard() {
   usePolling(load, 60_000);
 
   const stats = useMemo(() => ({
-    activeUsers:  users.filter(u => (u.status || "active") === "active").length,
-    admins:       users.filter(u => String(u.role || "").toLowerCase() === "admin").length,
-    pending:      users.filter(u => u.status === "pending").length,
-    banned:       users.filter(u => u.status === "banned").length,
-    totalLeads:   leads.length,
-    newLeads:     leads.filter(l => (l.stage || "new") === "new").length,
-  }), [users, leads]);
+    activeUsers:      users.filter(u => (u.status || "active") === "active").length,
+    admins:           users.filter(u => String(u.role || "").toLowerCase() === "admin").length,
+    pending:          users.filter(u => u.status === "pending").length,
+    banned:           users.filter(u => u.status === "banned").length,
+    totalLeads:       leads.length,
+    newLeads:         leads.filter(l => (l.stage || "new") === "new").length,
+    totalContent:     content.length,
+    publishedContent: content.filter(c => c.status === "published").length,
+    draftContent:     content.filter(c => c.status === "draft").length,
+  }), [users, leads, content]);
+
+  const contentByType = useMemo(() => {
+    const map = {};
+    for (const c of content) { map[c.type] = (map[c.type] || 0) + 1; }
+    return Object.entries(map).sort((a, b) => b[1] - a[1]);
+  }, [content]);
+
+  const recentContent = useMemo(() =>
+    [...content]
+      .sort((a, b) => new Date(b.updated_at || b.CreatedAt || 0) - new Date(a.updated_at || a.CreatedAt || 0))
+      .slice(0, 5),
+  [content]);
 
   const segmentRows = useMemo(() => {
     const map = {};
@@ -93,12 +122,12 @@ export default function AdminDashboard() {
 
       <section className="admin-grid stats">
         {[
-          { label: "Usuarios activos",  value: stats.activeUsers, meta: "con acceso operativo" },
-          { label: "Pendientes",        value: stats.pending,     meta: "en revisión" },
-          { label: "Suspendidos",       value: stats.banned,      meta: "sin acceso" },
-          { label: "Leads totales",     value: stats.totalLeads,  meta: "captados" },
-          { label: "Leads nuevos",      value: stats.newLeads,    meta: "sin contactar" },
-          { label: "Administradores",   value: stats.admins,      meta: "usuarios privilegiados" },
+          { label: "Usuarios activos",  value: stats.activeUsers,      meta: "con acceso operativo" },
+          { label: "Pendientes",        value: stats.pending,          meta: "en revisión" },
+          { label: "Leads totales",     value: stats.totalLeads,       meta: "captados" },
+          { label: "Leads nuevos",      value: stats.newLeads,         meta: "sin contactar" },
+          { label: "Contenidos",        value: stats.totalContent,     meta: `${stats.publishedContent} publicados` },
+          { label: "Borradores",        value: stats.draftContent,     meta: "pendientes de publicar" },
         ].map(({ label, value, meta }) => (
           <article key={label} className="admin-card">
             <div className="admin-stat-label">{label}</div>
@@ -106,6 +135,41 @@ export default function AdminDashboard() {
             <div className="admin-stat-meta">{meta}</div>
           </article>
         ))}
+      </section>
+
+      {/* Contenido reciente */}
+      <section className="admin-full">
+        <article className="admin-card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <h2>Contenido reciente</h2>
+            <Link to="/admin/content" className="admin-link-sm">Ver todo →</Link>
+          </div>
+          {!recentContent.length ? (
+            <p className="admin-muted">Sin contenidos aún. <Link to="/admin/content" className="admin-link-sm">Crear primero</Link></p>
+          ) : (
+            <div className="admin-list">
+              {recentContent.map(item => (
+                <div key={item.uuid || item.id} className="admin-list-item content-dash-row">
+                  <div className="content-dash-info">
+                    <span className="content-dash-title">{item.title}</span>
+                    <span className="content-dash-meta">{item.author_name || "—"}</span>
+                  </div>
+                  <div className="content-dash-right">
+                    <span className="admin-badge" style={{ background: `${TYPE_COLOR[item.type]}22`, color: TYPE_COLOR[item.type] || "var(--am)" }}>
+                      {TYPE_LABELS[item.type] || item.type}
+                    </span>
+                    <span className={`admin-badge ${item.status === "published" ? "green" : item.status === "archived" ? "gray" : "yellow"}`}>
+                      {item.status === "published" ? "Publicado" : item.status === "archived" ? "Archivado" : "Borrador"}
+                    </span>
+                    <span className="admin-muted" style={{ fontSize: "0.75rem" }}>
+                      {item.updated_at ? formatDate(item.updated_at) : "—"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </article>
       </section>
 
       <section className="admin-kpis">
@@ -137,6 +201,49 @@ export default function AdminDashboard() {
               <span className="segment-count">{row.count}</span>
             </div>
           ))}
+        </article>
+      </section>
+
+      <section className="admin-kpis">
+        <article className="admin-card">
+          <h2>Contenido por tipo</h2>
+          {!contentByType.length ? (
+            <p className="admin-muted">Sin contenidos aún.</p>
+          ) : contentByType.map(([type, count]) => {
+            const total = content.length || 1;
+            const pct   = Math.round((count / total) * 100);
+            return (
+              <div key={type} className="segment-row">
+                <span className="segment-label">{TYPE_LABELS[type] || type}</span>
+                <div className="segment-bar-wrap">
+                  <div className="segment-bar" style={{ width: `${pct}%`, background: TYPE_COLOR[type] || "var(--admin-success)" }} />
+                </div>
+                <span className="segment-count">{count} · {pct}%</span>
+              </div>
+            );
+          })}
+        </article>
+
+        <article className="admin-card">
+          <h2>Estado de contenidos</h2>
+          {!content.length ? (
+            <p className="admin-muted">Sin contenidos aún.</p>
+          ) : [
+            { label: "Publicados", count: stats.publishedContent, color: "var(--admin-success)" },
+            { label: "Borradores", count: stats.draftContent,     color: "var(--admin-warning)" },
+            { label: "Archivados", count: content.filter(c => c.status === "archived").length, color: "var(--am)" },
+          ].map(row => {
+            const pct = Math.round((row.count / (content.length || 1)) * 100);
+            return (
+              <div key={row.label} className="segment-row">
+                <span className="segment-label">{row.label}</span>
+                <div className="segment-bar-wrap">
+                  <div className="segment-bar" style={{ width: `${pct}%`, background: row.color }} />
+                </div>
+                <span className="segment-count">{row.count}</span>
+              </div>
+            );
+          })}
         </article>
       </section>
 

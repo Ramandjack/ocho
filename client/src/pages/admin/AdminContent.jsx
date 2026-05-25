@@ -36,6 +36,14 @@ export default function AdminContent() {
   const [submitting, setSubmitting] = useState(false);
   const { toasts, show }          = useToast();
 
+  // Bloquea scroll del body cuando el modal está abierto
+  useEffect(() => {
+    if (modal) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [modal]);
+
   async function load() {
     try {
       const r = await apiFetch("/api/admin/content");

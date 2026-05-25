@@ -593,15 +593,80 @@
   }
 }
 
+@keyframes overlayIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
 .admin-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.72);
-  z-index: 1000;
+  z-index: 9000;
+  /* sólido + blur — el fondo queda oscuro y bloqueado */
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
+  padding: 24px;
+  overflow-y: auto;
+  animation: overlayIn 0.18s ease;
+  /* bloquea interacción con todo lo que está detrás */
+  isolation: isolate;
+}
+
+/* Modal container — surface sólido con shadow real */
+.admin-modal {
+  position: relative;
+  background: #0f0f0f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+  padding: 28px 32px;
+  width: 100%;
+  max-width: 560px;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 32px 80px rgba(0, 0, 0, 0.8),
+    0 8px 24px  rgba(0, 0, 0, 0.5);
+  animation: modalIn 0.2s cubic-bezier(0.34, 1.4, 0.64, 1);
+  flex-shrink: 0;
+}
+
+.admin-modal h3 {
+  margin: 0 0 20px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.admin-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  width: 30px;
+  height: 30px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.admin-modal-close:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
 }
 
 .admin-modal-card {
@@ -612,17 +677,71 @@
   position: relative;
 }
 
-.admin-modal-close {
-  position: sticky;
-  top: 0;
-  float: right;
-  background: none;
-  border: none;
+.admin-modal-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* Inputs del modal */
+.admin-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.admin-input {
+  appearance: none;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
   color: #fff;
+  font-family: inherit;
+  font-size: 0.875rem;
+  padding: 10px 14px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.15s, background 0.15s;
+  resize: none;
+}
+
+.admin-input:focus {
+  border-color: rgba(255, 255, 255, 0.28);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.admin-input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.admin-input option {
+  background: #111;
+  color: #fff;
+}
+
+/* Sección principal de cada página */
+.admin-section {
+  max-width: 1200px;
+}
+
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-section-header h2 {
   font-size: 1.4rem;
-  cursor: pointer;
-  line-height: 1;
-  padding: 4px 8px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin: 0;
 }
 
 .admin-toast-container {
@@ -838,30 +957,11 @@
   flex-wrap: wrap;
 }
 
-.admin-btn {
-  padding: 8px 16px;
-  border-radius: 10px;
-  border: 1px solid var(--ab);
-  background: var(--as2);
-  color: var(--aa);
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.admin-btn:hover { background: var(--ab); }
+/* .admin-btn defined above — only add variants here */
 .admin-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-.admin-btn.primary {
-  background: #fff;
-  color: #000;
-  border-color: #fff;
-}
-.admin-btn.primary:hover { background: rgba(255,255,255,.85); }
-
 .admin-btn.secondary {
-  border-color: rgba(255,255,255,.2);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
 .admin-btn-sm.green  { color: var(--aok); border-color: rgba(125,211,167,.3); }

@@ -43,6 +43,12 @@ export default function AdminSecurity() {
   }
 
   useEffect(() => { load(); }, []);
+  useEffect(() => {
+    if (resetTarget) {
+      document.body.style.overflow = "hidden";
+      return () => { document.body.style.overflow = ""; };
+    }
+  }, [resetTarget]);
   usePolling(load, 60_000);
 
   const banned       = users.filter(u => u.status === "banned");

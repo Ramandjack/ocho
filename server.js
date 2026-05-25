@@ -15,6 +15,7 @@ import { authMiddleware, requireAdmin } from "./middleware/auth.js";
 import projectsRouter from "./projects.routes.js";
 import otherRouter    from "./other.routes.js";
 import aiRouter       from "./ai.routes.js";
+import contentRouter  from "./content.routes.js";
 
 dotenv.config();
 
@@ -566,6 +567,7 @@ app.patch("/api/admin/leads/:id/stage", authMiddleware, requireAdmin, async (req
 app.use("/api", projectsRouter);
 app.use("/api", otherRouter);
 app.use("/api", aiRouter);
+app.use("/api", contentRouter);
 
 /* =========================
    REACT SPA

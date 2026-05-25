@@ -20,6 +20,7 @@ const TABLES = {
   user_modules: process.env.NOCODB_USER_MODULES_URL,
   activity_log: process.env.NOCODB_ACTIVITY_LOG_URL,
   resources:    process.env.NOCODB_RESOURCES_URL,
+  content:      process.env.NOCODB_CONTENT_URL,
 };
 
 /* ===========================

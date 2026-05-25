@@ -25,6 +25,7 @@ import AdminLeads           from "./pages/admin/AdminLeads.jsx";
 import AdminProjects        from "./pages/admin/AdminProjects.jsx";
 import AdminTasks           from "./pages/admin/AdminTasks.jsx";
 import AdminModules         from "./pages/admin/AdminModules.jsx";
+import AdminContent         from "./pages/admin/AdminContent.jsx";
 import AdminSecurity        from "./pages/admin/AdminSecurity.jsx";
 
 export default function App() {
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="tasks"       element={<AdminTasks />} />
         <Route path="modules"     element={<AdminModules />} />
         <Route path="leads"       element={<AdminLeads />} />
+        <Route path="content"     element={<AdminContent />} />
         <Route path="security"    element={<AdminSecurity />} />
       </Route>
 

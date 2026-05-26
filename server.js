@@ -24,6 +24,7 @@ import resourcesRouter   from "./routes/resources.routes.js";
 import dashboardRouter   from "./routes/dashboard.routes.js";
 import aiRouter          from "./ai.routes.js";
 import contentRouter     from "./content.routes.js";
+import sseRouter         from "./routes/sse.routes.js";
 
 dotenv.config();
 
@@ -105,11 +106,11 @@ if (spaReady) {
 
 app.get("/",            (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
 app.get("/index.html",  (_req, res) => res.sendFile(path.join(__dirname, "index.html")));
-app.get("/login.html",    (_req, res) => spaReady ? res.redirect(302, "/app/login")    : res.sendFile(path.join(__dirname, "login.html")));
-app.get("/register.html", (_req, res) => spaReady ? res.redirect(302, "/app/register") : res.sendFile(path.join(__dirname, "register.html")));
-app.get("/logout.html",   (_req, res) => spaReady ? res.redirect(302, "/app/logout")   : res.sendFile(path.join(__dirname, "logout.html")));
-app.get("/panel.html",    (_req, res) => spaReady ? res.redirect(302, "/app/panel")    : res.sendFile(path.join(__dirname, "panel.html")));
-app.get("/admin.html",    (_req, res) => spaReady ? res.redirect(302, "/app/admin")    : res.sendFile(path.join(__dirname, "admin.html")));
+app.get("/login.html",    (_req, res) => res.redirect(302, "/app/login"));
+app.get("/register.html", (_req, res) => res.redirect(302, "/app/register"));
+app.get("/logout.html",   (_req, res) => res.redirect(302, "/app/logout"));
+app.get("/panel.html",    (_req, res) => res.redirect(302, "/app/panel"));
+app.get("/admin.html",    (_req, res) => res.redirect(302, "/app/admin"));
 
 /* =========================
    HEALTH
@@ -136,6 +137,7 @@ app.use("/api", resourcesRouter);
 app.use("/api", dashboardRouter);
 app.use("/api", aiRouter);
 app.use("/api", contentRouter);
+app.use("/api", sseRouter);
 
 /* =========================
    REACT SPA

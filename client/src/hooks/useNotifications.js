@@ -1,21 +1,65 @@
-import { useCallback, useState } from "react";
-import { apiFetch } from "../lib/api.js";
-import { usePolling } from "./usePolling.js";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { apiFetch, getApiBase } from "../lib/api.js";
 
-export function useNotifications(intervalMs = 30_000) {
+export function useNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [unread, setUnread]               = useState(0);
+  const esRef = useRef(null);
 
-  const fetch = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/user/notifications");
-      const all = res.notifications ?? [];
-      setNotifications(all);
-      setUnread(all.filter(n => !n.read).length);
-    } catch {}
+  const applyUpdate = useCallback((all) => {
+    setNotifications(all);
+    setUnread(all.filter(n => !n.read).length);
   }, []);
 
-  usePolling(fetch, intervalMs);
+  // Fallback: plain fetch (used when EventSource is unavailable or errors out)
+  const fetchOnce = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/user/notifications");
+      applyUpdate(res.notifications ?? []);
+    } catch {}
+  }, [applyUpdate]);
 
-  return { notifications, unread, refresh: fetch };
+  useEffect(() => {
+    // EventSource sends cookies automatically (withCredentials equivalent)
+    // and is supported in all modern browsers.
+    if (typeof EventSource === "undefined") {
+      // SSR or very old browser — fall back to one-shot fetch
+      fetchOnce();
+      return;
+    }
+
+    const url = `${getApiBase()}/api/user/notifications/stream`;
+    const es  = new EventSource(url, { withCredentials: true });
+    esRef.current = es;
+
+    es.addEventListener("notifications", (e) => {
+      try {
+        const { notifications: all, unread: u } = JSON.parse(e.data);
+        setNotifications(all ?? []);
+        setUnread(u ?? 0);
+      } catch {}
+    });
+
+    es.onerror = () => {
+      // SSE failed (network error, proxy timeout, etc.) — close and fall back to polling
+      es.close();
+      esRef.current = null;
+      fetchOnce();
+      const id = setInterval(fetchOnce, 60_000);
+      return () => clearInterval(id);
+    };
+
+    return () => {
+      es.close();
+      esRef.current = null;
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const refresh = useCallback(async () => {
+    // Manual refresh: re-fetch and optionally nudge the SSE (it'll push next cycle)
+    await fetchOnce();
+  }, [fetchOnce]);
+
+  return { notifications, unread, refresh };
 }

@@ -1,35 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link, useOutletContext } from "react-router-dom";
 import { apiFetch } from "../../lib/api.js";
-
-const TYPE_COLOR = {
-  article:    { bg: "rgba(96,165,250,.12)",  text: "#60a5fa" },
-  collection: { bg: "rgba(167,139,250,.12)", text: "#a78bfa" },
-  toolkit:    { bg: "rgba(45,212,191,.12)",  text: "#2dd4bf" },
-  newsletter: { bg: "rgba(251,146,60,.12)",  text: "#fb923c" },
-};
-
-const TYPE_LABEL = {
-  article: "Artículo", collection: "Colección",
-  toolkit: "Toolkit",  newsletter: "Newsletter",
-};
+import { timeAgo } from "../../lib/utils.js";
+import { CONTENT_TYPE_COLOR as TYPE_COLOR, CONTENT_TYPE_LABEL as TYPE_LABEL } from "../../lib/constants.js";
 
 const STATUS_LABEL = {
   pending:     "pendiente",
   in_progress: "en curso",
   done:        "completado",
 };
-
-function timeAgo(dateStr) {
-  if (!dateStr) return null;
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const min  = Math.floor(diff / 60_000);
-  if (min < 1)  return "ahora";
-  if (min < 60) return `hace ${min}m`;
-  const h = Math.floor(min / 60);
-  if (h < 24)   return `hace ${h}h`;
-  return `hace ${Math.floor(h / 24)}d`;
-}
 
 function StatCard({ value, label }) {
   return (

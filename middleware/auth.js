@@ -1,11 +1,12 @@
 import jwt from "jsonwebtoken";
 import { db } from "../nocodb.service.js";
+import { normalizeRole } from "../utils/helpers.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "ocho-dev-secret-change-this";
 
-function normalizeRole(role) {
-  if (Array.isArray(role)) return String(role[0] || "").trim().toLowerCase();
-  return String(role || "").trim().toLowerCase();
+if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET no está definido en producción.");
+  process.exit(1);
 }
 
 export function authMiddleware(req, res, next) {

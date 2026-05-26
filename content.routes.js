@@ -19,6 +19,17 @@ function slugify(str) {
     .slice(0, 80);
 }
 
+// Lookup by uuid (string) first; fall back to numeric record id.
+// Avoids fetching all content just to find one item.
+async function findContentItem(id) {
+  const byUuid = await db.findOne("content", "uuid", id);
+  if (byUuid) return byUuid;
+  if (!isNaN(Number(id))) {
+    return db.getById("content", id).catch(() => null);
+  }
+  return null;
+}
+
 /* =========================
    USER — CONTENT (solo publicados)
 ========================= */
@@ -106,8 +117,7 @@ router.post("/admin/content", authMiddleware, requireAdmin, async (req, res) => 
 router.patch("/admin/content/:id", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const items  = await db.getAll("content");
-    const target = items.find(c => String(c.uuid) === id || String(c.nocodb_id || c.id) === id);
+    const target = await findContentItem(id);
     if (!target) return res.status(404).json({ success: false, message: "Contenido no encontrado" });
 
     const allowed = ["title", "type", "excerpt", "body", "tags", "cover_url", "author_name", "slug"];
@@ -139,8 +149,7 @@ router.patch("/admin/content/:id", authMiddleware, requireAdmin, async (req, res
 router.patch("/admin/content/:id/publish", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const items  = await db.getAll("content");
-    const target = items.find(c => String(c.uuid) === id || String(c.nocodb_id || c.id) === id);
+    const target = await findContentItem(id);
     if (!target) return res.status(404).json({ success: false, message: "Contenido no encontrado" });
 
     const recordId = target.nocodb_id || target.id;
@@ -164,8 +173,7 @@ router.patch("/admin/content/:id/publish", authMiddleware, requireAdmin, async (
 router.delete("/admin/content/:id", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const items  = await db.getAll("content");
-    const target = items.find(c => String(c.uuid) === id || String(c.nocodb_id || c.id) === id);
+    const target = await findContentItem(id);
     if (!target) return res.status(404).json({ success: false, message: "Contenido no encontrado" });
 
     const recordId = target.nocodb_id || target.id;

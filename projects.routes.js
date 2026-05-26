@@ -142,7 +142,7 @@ router.delete("/admin/projects/:id", authMiddleware, requireAdmin, async (req, r
 router.post("/admin/projects/:id/assign", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
-    const raw = req.body?.permission;
+    const { user_uuids, permission: raw } = req.body || {};
     const permission = ["viewer", "editor"].includes(raw) ? raw : "viewer";
 
     if (!Array.isArray(user_uuids) || !user_uuids.length) {

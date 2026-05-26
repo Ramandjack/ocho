@@ -1,8 +1,18 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { db } from "./nocodb.service.js";
 import { authMiddleware } from "./middleware/auth.js";
 
 const router = express.Router();
+
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  keyGenerator: req => req.user.sub,
+  message: { success: false, message: "Demasiadas solicitudes a la IA. Esperá 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY;
 const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
@@ -76,7 +86,7 @@ const SYSTEM_BASE =
    BRIEF DEL DÍA
 =========================== */
 
-router.post("/ai/brief", authMiddleware, async (req, res) => {
+router.post("/ai/brief", authMiddleware, aiLimiter, async (req, res) => {
   try {
     const ctx = await buildContext(req.user.sub);
 
@@ -100,7 +110,7 @@ router.post("/ai/brief", authMiddleware, async (req, res) => {
    CHAT
 =========================== */
 
-router.post("/ai/chat", authMiddleware, async (req, res) => {
+router.post("/ai/chat", authMiddleware, aiLimiter, async (req, res) => {
   try {
     const { messages } = req.body || {};
 

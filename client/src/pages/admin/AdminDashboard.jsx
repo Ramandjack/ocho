@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useAdminData } from "../../context/AdminDataContext.jsx";
 import { formatDate } from "./adminUtils.jsx";
+import { CONTENT_TYPE_HEX as TYPE_COLOR, CONTENT_TYPE_LABEL as TYPE_LABELS } from "../../lib/constants.js";
 
 const SEGMENT_LABELS = {
   newsletter_only:    "Newsletter",
@@ -9,16 +10,6 @@ const SEGMENT_LABELS = {
   ecommerce_interest: "Ecommerce",
   editorial_interest: "Editorial",
   marketing_leads:    "Marketing",
-};
-
-const TYPE_LABELS = {
-  article: "Artículo", collection: "Colección",
-  toolkit: "Toolkit",  newsletter: "Newsletter",
-};
-
-const TYPE_COLOR = {
-  article: "#60a5fa", collection: "#a78bfa",
-  toolkit: "#2dd4bf", newsletter: "#fb923c",
 };
 
 export default function AdminDashboard() {

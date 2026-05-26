@@ -13,6 +13,9 @@ client/dist/
 # macOS
 .DS_Store
 
+# Cloudflare Pages build artifacts
+*.pages
+
 # logs
 npm-debug.log*
 yarn-debug.log*

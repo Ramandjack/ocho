@@ -10,7 +10,7 @@
     "client:dev": "npm run dev --prefix client",
     "client:install": "npm install --prefix client",
     "client:build": "npm run build --prefix client",
-    "build": "npm run client:build",
+    "build": "npm run client:install && npm run client:build",
     "preview:client": "npm run preview --prefix client"
   },
   "dependencies": {

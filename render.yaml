@@ -1,0 +1,81 @@
+services:
+  - type: web
+    name: ocho
+    runtime: node
+    region: oregon
+    plan: starter
+    buildCommand: npm install && npm run build
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 3000
+
+      # ── Auth ─────────────────────────────────────────────────
+      - key: JWT_SECRET
+        sync: false
+
+      # ── NocoDB ───────────────────────────────────────────────
+      - key: NOCODB_TOKEN
+        sync: false
+
+      - key: NOCODB_USERS_URL
+        sync: false
+
+      - key: NOCODB_LEADS_URL
+        sync: false
+
+      - key: NOCODB_PROJECTS_URL
+        sync: false
+
+      - key: NOCODB_USER_PROJECTS_URL
+        sync: false
+
+      - key: NOCODB_TASKS_URL
+        sync: false
+
+      - key: NOCODB_NOTIFICATIONS_URL
+        sync: false
+
+      - key: NOCODB_MODULES_URL
+        sync: false
+
+      - key: NOCODB_USER_MODULES_URL
+        sync: false
+
+      - key: NOCODB_ACTIVITY_LOG_URL
+        sync: false
+
+      - key: NOCODB_RESOURCES_URL
+        sync: false
+
+      - key: NOCODB_CONTENT_URL
+        sync: false
+
+      # ── IA (opcional) ─────────────────────────────────────────
+      - key: ANTHROPIC_API_KEY
+        sync: false
+
+      # ── CORS ──────────────────────────────────────────────────
+      # Set to your production domain(s), comma-separated.
+      # If unset, defaults include https://ocho.com.ar
+      - key: CORS_ORIGINS
+        sync: false
+
+      # ── n8n (opcional) ────────────────────────────────────────
+      - key: N8N_LEAD_WEBHOOK
+        sync: false
+
+      - key: N8N_API_KEY
+        sync: false
+
+    # Uncomment to persist uploaded files across deploys (requires paid plan)
+    # disk:
+    #   name: uploads
+    #   mountPath: /opt/render/project/src/uploads
+    #   sizeGB: 1

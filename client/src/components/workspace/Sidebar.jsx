@@ -8,10 +8,9 @@ const NAV_PRIMARY = [
 ];
 
 const NAV_SECONDARY = [
-  { to: "/panel/content",    label: "Contenido" },
-  { to: "/panel/resources",  label: "Recursos" },
-  { to: "/panel/workspace",  label: "Workspace" },
-  { to: "/panel/ai",         label: "IA" },
+  { to: "/panel/content",   label: "Contenido" },
+  { to: "/panel/resources", label: "Recursos" },
+  { to: "/panel/ai",        label: "IA" },
 ];
 
 export default function Sidebar({ user }) {
@@ -53,7 +52,7 @@ export default function Sidebar({ user }) {
           <NavLink
             key={to}
             to={to}
-            className={({ isActive }) => `sidebar-link${isActive ? " active" : ""}`}
+            className={({ isActive }) => `sidebar-link sidebar-link-secondary${isActive ? " active" : ""}`}
           >
             {label}
           </NavLink>

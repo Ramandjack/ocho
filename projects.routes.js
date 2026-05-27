@@ -292,4 +292,144 @@ router.get("/user/projects/:id", authMiddleware, async (req, res) => {
   }
 });
 
+/* ===========================
+   PROJECT MESSAGES (feedback thread)
+
+   NocoDB table: project_messages
+   Required fields:
+     project_id   (Number)
+     user_uuid    (Text)
+     author_name  (Text)
+     author_role  (Text)   — "admin" | "member" | "client"
+     content      (Long Text)
+=========================== */
+
+async function assertProjectAccess(userUuid, projectId) {
+  const rows = await db.getWhere(
+    "user_projects",
+    `(user_uuid,eq,${userUuid})~and(project_id,eq,${projectId})`
+  );
+  return rows.length > 0;
+}
+
+// GET /api/user/projects/:id/messages
+router.get("/user/projects/:id/messages", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const hasAccess = await assertProjectAccess(req.user.sub, id);
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, message: "Sin acceso a este proyecto" });
+    }
+
+    const msgs = await db.getWhere("project_messages", `(project_id,eq,${id})`);
+    const sorted = msgs.sort((a, b) => new Date(a.CreatedAt || 0) - new Date(b.CreatedAt || 0));
+    return res.json({ success: true, messages: sorted });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/user/projects/:id/messages
+router.post("/user/projects/:id/messages", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userUuid = req.user.sub;
+    const content = String(req.body?.content || "").trim();
+
+    if (!content) {
+      return res.status(400).json({ success: false, message: "El mensaje no puede estar vacío" });
+    }
+
+    const hasAccess = await assertProjectAccess(userUuid, id);
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, message: "Sin acceso a este proyecto" });
+    }
+
+    const userRow = await db.findOne("users", "uuid", userUuid);
+
+    const message = await db.insert("project_messages", {
+      project_id:  Number(id),
+      user_uuid:   userUuid,
+      author_name: userRow?.full_name || userRow?.first_name || "Usuario",
+      author_role: userRow?.role || "client",
+      content,
+    });
+
+    await db.logActivity(userUuid, "message", "project", id, `Mensaje: ${content.slice(0, 60)}`);
+
+    // Notify admins when a non-admin writes
+    if (!["admin", "member"].includes(String(userRow?.role || "").toLowerCase())) {
+      const allAdmins = await db.getWhere("users", "(role,eq,admin)");
+      if (allAdmins.length) {
+        await db.sendNotificationToMany(
+          allAdmins.map(a => a.uuid).filter(Boolean),
+          "project",
+          "Nuevo mensaje de cliente",
+          `${userRow?.full_name || "Cliente"} escribió en el proyecto #${id}`,
+          `/app/panel/projects/${id}`
+        );
+      }
+    }
+
+    return res.status(201).json({ success: true, message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/projects/:id/messages — admin puede leer sin estar asignado
+router.get("/admin/projects/:id/messages", authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const msgs = await db.getWhere("project_messages", `(project_id,eq,${id})`);
+    const sorted = msgs.sort((a, b) => new Date(a.CreatedAt || 0) - new Date(b.CreatedAt || 0));
+    return res.json({ success: true, messages: sorted });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/admin/projects/:id/messages — admin responde desde el admin panel
+router.post("/admin/projects/:id/messages", authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userUuid = req.user.sub;
+    const content = String(req.body?.content || "").trim();
+
+    if (!content) {
+      return res.status(400).json({ success: false, message: "El mensaje no puede estar vacío" });
+    }
+
+    const userRow = await db.findOne("users", "uuid", userUuid);
+
+    const message = await db.insert("project_messages", {
+      project_id:  Number(id),
+      user_uuid:   userUuid,
+      author_name: userRow?.full_name || userRow?.first_name || "OCHO",
+      author_role: "admin",
+      content,
+    });
+
+    // Notify project members
+    const assignments = await db.getWhere("user_projects", `(project_id,eq,${id})`);
+    const clientUuids = assignments
+      .map(a => a.user_uuid)
+      .filter(uuid => uuid !== userUuid);
+
+    if (clientUuids.length) {
+      await db.sendNotificationToMany(
+        clientUuids,
+        "project",
+        "Nuevo mensaje del equipo",
+        content.slice(0, 80),
+        `/app/panel/projects/${id}`
+      );
+    }
+
+    return res.status(201).json({ success: true, message });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;

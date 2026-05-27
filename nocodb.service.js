@@ -18,9 +18,10 @@ const TABLES = {
   notifications:process.env.NOCODB_NOTIFICATIONS_URL,
   modules:      process.env.NOCODB_MODULES_URL,
   user_modules: process.env.NOCODB_USER_MODULES_URL,
-  activity_log: process.env.NOCODB_ACTIVITY_LOG_URL,
-  resources:    process.env.NOCODB_RESOURCES_URL,
-  content:      process.env.NOCODB_CONTENT_URL,
+  activity_log:     process.env.NOCODB_ACTIVITY_LOG_URL,
+  resources:        process.env.NOCODB_RESOURCES_URL,
+  content:          process.env.NOCODB_CONTENT_URL,
+  project_messages: process.env.NOCODB_PROJECT_MESSAGES_URL,
 };
 
 /* ===========================

@@ -57,6 +57,9 @@ services:
       - key: NOCODB_CONTENT_URL
         sync: false
 
+      - key: NOCODB_PROJECT_MESSAGES_URL
+        sync: false
+
       # ── IA (opcional) ─────────────────────────────────────────
       - key: ANTHROPIC_API_KEY
         sync: false

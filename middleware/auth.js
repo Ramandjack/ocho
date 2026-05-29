@@ -12,10 +12,14 @@ if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
 export function authMiddleware(req, res, next) {
   try {
     const token = req.cookies?.ocho_token;
-    if (!token) return res.status(401).json({ success: false, message: "No autenticado" });
+    if (!token) {
+      console.warn(`[auth] Sin token — ${req.method} ${req.path} | cookies: ${JSON.stringify(Object.keys(req.cookies || {}))}`);
+      return res.status(401).json({ success: false, message: "No autenticado" });
+    }
     req.user = jwt.verify(token, JWT_SECRET);
     next();
-  } catch {
+  } catch (e) {
+    console.warn(`[auth] Token inválido — ${req.method} ${req.path}: ${e.message}`);
     return res.status(401).json({ success: false, message: "Sesión inválida o expirada" });
   }
 }

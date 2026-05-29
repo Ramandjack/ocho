@@ -49,12 +49,13 @@ export default function AdminContent() {
   }
 
   function openEdit(item) {
+    const rawType = Array.isArray(item.type) ? item.type[0] : item.type;
     setForm({
       title:       item.title       || "",
-      type:        item.type        || "article",
+      type:        String(rawType   || "article"),
       excerpt:     item.excerpt     || "",
       body:        item.body        || "",
-      tags:        item.tags        || "",
+      tags:        Array.isArray(item.tags) ? item.tags.join(", ") : (item.tags || ""),
       cover_url:   item.cover_url   || "",
       author_name: item.author_name || "",
     });
@@ -77,21 +78,23 @@ export default function AdminContent() {
           body: JSON.stringify(form),
         });
         if (r.success) {
-          setContent(prev => [r.content, ...prev]);
+          setContent(prev => [r.item ?? r.content, ...prev]);
           show("Contenido creado", "success");
           closeModal();
         } else {
           show(r.message || "Error al guardar", "error");
         }
       } else {
-        const id = editTarget.uuid || editTarget.nocodb_id || editTarget.id;
+        const id = editTarget.nocodb_id || editTarget.id;
         const r = await apiFetch(`/api/admin/content/${id}`, {
           method: "PATCH",
           body: JSON.stringify(form),
         });
         if (r.success) {
           setContent(prev => prev.map(i =>
-            (i.uuid || i.id) === (editTarget.uuid || editTarget.id) ? { ...i, ...form } : i
+            (i.nocodb_id || i.id) === (editTarget.nocodb_id || editTarget.id)
+              ? { ...i, ...form }
+              : i
           ));
           show("Contenido actualizado", "success");
           closeModal();
@@ -107,12 +110,12 @@ export default function AdminContent() {
   }
 
   async function handlePublish(item) {
-    const id = item.uuid || item.nocodb_id || item.id;
+    const id = item.nocodb_id || item.id;
     try {
       const r = await apiFetch(`/api/admin/content/${id}/publish`, { method: "PATCH" });
       if (r.success) {
         setContent(prev => prev.map(i =>
-          (i.uuid || i.id) === (item.uuid || item.id)
+          (i.nocodb_id || i.id) === (item.nocodb_id || item.id)
             ? { ...i, status: "published", published_at: new Date().toISOString() }
             : i
         ));
@@ -122,7 +125,7 @@ export default function AdminContent() {
   }
 
   async function handleStatusChange(item, status) {
-    const id = item.uuid || item.nocodb_id || item.id;
+    const id = item.nocodb_id || item.id;
     try {
       const r = await apiFetch(`/api/admin/content/${id}`, {
         method: "PATCH",
@@ -130,7 +133,7 @@ export default function AdminContent() {
       });
       if (r.success) {
         setContent(prev => prev.map(i =>
-          (i.uuid || i.id) === (item.uuid || item.id) ? { ...i, status } : i
+          (i.nocodb_id || i.id) === (item.nocodb_id || item.id) ? { ...i, status } : i
         ));
         show("Estado actualizado", "success");
       } else show(r.message || "Error", "error");
@@ -139,11 +142,11 @@ export default function AdminContent() {
 
   async function handleDelete(item) {
     if (!confirm(`¿Eliminar "${item.title}"?`)) return;
-    const id = item.uuid || item.nocodb_id || item.id;
+    const id = item.nocodb_id || item.id;
     try {
       const r = await apiFetch(`/api/admin/content/${id}`, { method: "DELETE" });
       if (r.success) {
-        setContent(prev => prev.filter(i => (i.uuid || i.id) !== (item.uuid || item.id)));
+        setContent(prev => prev.filter(i => (i.nocodb_id || i.id) !== (item.nocodb_id || item.id)));
         show("Eliminado", "success");
       } else show(r.message || "Error", "error");
     } catch (err) { show(err.message || "Error de conexión", "error"); }

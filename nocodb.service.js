@@ -85,6 +85,9 @@ function flatten(record) {
       ...record.fields,
     };
   }
+  // NocoDB v3 devuelve el PK como "Id" (mayúscula) en el endpoint /records/:id
+  const rid = record.Id ?? record.id ?? record.nocodb_id;
+  if (rid != null) return { ...record, id: rid, nocodb_id: rid };
   return record;
 }
 
@@ -219,7 +222,10 @@ async function update(table, id, fields) {
 
 async function remove(table, id) {
   const base = tableUrl(table);
-  await ncFetch(`${base}/${id}`, { method: "DELETE" });
+  await ncFetch(base, {
+    method: "DELETE",
+    body: JSON.stringify([{ id }]),
+  });
   clearTableCache(table);
   return { deleted: true, id };
 }

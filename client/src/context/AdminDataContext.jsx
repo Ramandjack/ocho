@@ -3,6 +3,7 @@ import { apiFetch } from "../lib/api.js";
 
 const Ctx = createContext(null);
 
+// Individual endpoints — usados sólo para refresh parcial tras mutaciones
 const PATHS = {
   users:    "/api/admin/users",
   leads:    "/api/admin/leads",
@@ -35,31 +36,50 @@ export function AdminDataProvider({ children }) {
   const [activity, setActivity] = useState([]);
   const [ready,    setReady]    = useState(false);
 
-  const setterMap = { users: setUsers, leads: setLeads, projects: setProjects, tasks: setTasks, modules: setModules, content: setContent, activity: setActivity };
+  const setterMap = {
+    users: setUsers, leads: setLeads, projects: setProjects,
+    tasks: setTasks, modules: setModules, content: setContent, activity: setActivity,
+  };
 
-  const fetchKeys = useCallback(async (keys = ALL_KEYS) => {
+  // Carga todo en un solo request — elimina rate limiting de NocoDB
+  const fetchBootstrap = useCallback(async () => {
+    const r = await apiFetch("/api/admin/bootstrap");
+    setUsers(r.users    ?? []);
+    setLeads(r.leads    ?? []);
+    setProjects(r.projects ?? []);
+    setTasks(r.tasks    ?? []);
+    setModules(r.modules  ?? []);
+    setContent(r.content  ?? []);
+    setActivity(r.activity ?? []);
+  }, []);
+
+  // Refresh parcial de keys específicas (post-mutación)
+  const fetchKeys = useCallback(async (keys) => {
+    const targets = Array.isArray(keys) ? keys : [keys];
     const results = await Promise.allSettled(
-      keys.map(k => apiFetch(PATHS[k]).then(r => EXTRACT[k](r)))
+      targets.map(k => apiFetch(PATHS[k]).then(r => EXTRACT[k](r)))
     );
     results.forEach((r, i) => {
-      if (r.status === "fulfilled") setterMap[keys[i]](r.value);
+      if (r.status === "fulfilled") setterMap[targets[i]](r.value);
     });
-  // setterMap values are stable useState setters — safe to omit from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    fetchKeys().finally(() => setReady(true));
-    const id = setInterval(() => fetchKeys(), 60_000);
+    fetchBootstrap().finally(() => setReady(true));
+    // Re-sincroniza completo cada 2 minutos (TTL del cache del servidor)
+    const id = setInterval(fetchBootstrap, 120_000);
     return () => clearInterval(id);
-  // fetchKeys is stable (useCallback with [])
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // refresh(key | key[] | undefined) — si no se pasan keys, recarga todo
   const refresh = useCallback((keys) => {
-    const k = Array.isArray(keys) ? keys : typeof keys === "string" ? [keys] : ALL_KEYS;
-    return fetchKeys(k);
-  }, [fetchKeys]);
+    if (!keys || (Array.isArray(keys) && keys.length === ALL_KEYS.length)) {
+      return fetchBootstrap();
+    }
+    return fetchKeys(Array.isArray(keys) ? keys : [keys]);
+  }, [fetchBootstrap, fetchKeys]);
 
   return (
     <Ctx.Provider value={{

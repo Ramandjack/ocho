@@ -1,6 +1,6 @@
 import express from "express";
 import { db } from "../nocodb.service.js";
-import { authMiddleware } from "../middleware/auth.js";
+import { authMiddleware, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -37,6 +37,38 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }
+});
+
+/* ===========================
+   ADMIN BOOTSTRAP
+   Un solo request carga todos los datos del admin panel.
+   El servidor resuelve los 7 queries en paralelo usando el cache.
+=========================== */
+
+router.get("/admin/bootstrap", authMiddleware, requireAdmin, async (req, res) => {
+  const [usersR, leadsR, projectsR, tasksR, modulesR, contentR, activityR] =
+    await Promise.allSettled([
+      db.getAll("users"),
+      db.getAll("leads"),
+      db.getAll("projects"),
+      db.getAll("tasks"),
+      db.getAll("modules"),
+      db.getAll("content"),
+      db.getAll("activity_log"),
+    ]);
+
+  const pick = r => (r.status === "fulfilled" ? r.value : []);
+
+  return res.json({
+    success:  true,
+    users:    pick(usersR),
+    leads:    pick(leadsR),
+    projects: pick(projectsR),
+    tasks:    pick(tasksR),
+    modules:  pick(modulesR),
+    content:  pick(contentR),
+    activity: pick(activityR),
+  });
 });
 
 export default router;

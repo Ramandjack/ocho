@@ -1,5 +1,4 @@
 import express from "express";
-import crypto  from "crypto";
 import { db }  from "./nocodb.service.js";
 import { authMiddleware, requireAdmin } from "./middleware/auth.js";
 
@@ -19,13 +18,14 @@ function slugify(str) {
     .slice(0, 80);
 }
 
-// Lookup by uuid (string) first; fall back to numeric record id.
-// Avoids fetching all content just to find one item.
 async function findContentItem(id) {
-  const byUuid = await db.findOne("content", "uuid", id);
-  if (byUuid) return byUuid;
-  if (!isNaN(Number(id))) {
-    return db.getById("content", id).catch(() => null);
+  const num = Number(id);
+  const all = await db.getAll("content");
+  console.log("CONTENT ID:", id, "| total items:", all.length);
+  if (!isNaN(num) && num > 0) {
+    const found = all.find(r => Number(r.nocodb_id || r.id) === num) ?? null;
+    console.log("FILTRO USADO EN NOCODB: in-memory Id ===", num, "| found:", found?.nocodb_id ?? found?.id ?? null);
+    return found;
   }
   return null;
 }
@@ -87,7 +87,6 @@ router.post("/admin/content", authMiddleware, requireAdmin, async (req, res) => 
 
     const now  = new Date().toISOString();
     const item = await db.insert("content", {
-      uuid:        crypto.randomUUID(),
       title:       String(title).trim(),
       type,
       status:      "draft",
@@ -96,13 +95,12 @@ router.post("/admin/content", authMiddleware, requireAdmin, async (req, res) => 
       tags:        String(tags).trim(),
       cover_url:   String(cover_url).trim(),
       slug:        slugify(title),
-      author_uuid: req.user.sub,
       author_name: String(author_name).trim() || "Admin",
       published_at: null,
       updated_at:  now,
     });
 
-    await db.logActivity(req.user.sub, "create", "content", item.uuid || item.id, `${type}: "${title}"`);
+    await db.logActivity(req.user.sub, "create", "content", item.nocodb_id || item.id, `${type}: "${title}"`);
     return res.status(201).json({ success: true, item });
   } catch (err) {
     console.error("POST /admin/content:", err.message);
@@ -117,19 +115,29 @@ router.post("/admin/content", authMiddleware, requireAdmin, async (req, res) => 
 router.patch("/admin/content/:id", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("CONTENT ID:", id);
     const target = await findContentItem(id);
+    console.log("NOCODB FILTER:", `(Id,eq,${Number(id)})`, "→ target:", target?.nocodb_id ?? target?.id ?? null);
     if (!target) return res.status(404).json({ success: false, message: "Contenido no encontrado" });
 
-    const allowed = ["title", "type", "excerpt", "body", "tags", "cover_url", "author_name", "slug"];
+    const allowed = ["title", "excerpt", "body", "tags", "cover_url", "author_name", "slug"];
     const fields  = {};
     for (const key of allowed) {
-      if (req.body[key] !== undefined) fields[key] = req.body[key];
+      if (req.body[key] !== undefined) fields[key] = String(req.body[key] ?? "");
+    }
+    if (req.body.type !== undefined) {
+      const t = Array.isArray(req.body.type) ? req.body.type[0] : req.body.type;
+      if (!CONTENT_TYPES.includes(t)) {
+        return res.status(400).json({ success: false, message: `Tipo inválido. Válidos: ${CONTENT_TYPES.join(", ")}` });
+      }
+      fields.type = t;
     }
     if (req.body.status !== undefined) {
-      if (!CONTENT_STATUSES.includes(req.body.status)) {
+      const s = Array.isArray(req.body.status) ? req.body.status[0] : req.body.status;
+      if (!CONTENT_STATUSES.includes(s)) {
         return res.status(400).json({ success: false, message: "Estado inválido" });
       }
-      fields.status = req.body.status;
+      fields.status = s;
     }
     fields.updated_at = new Date().toISOString();
 
@@ -138,6 +146,7 @@ router.patch("/admin/content/:id", authMiddleware, requireAdmin, async (req, res
     await db.logActivity(req.user.sub, "update", "content", id, `Campos: ${Object.keys(fields).join(", ")}`);
     return res.json({ success: true, item: updated });
   } catch (err) {
+    console.error("PATCH /admin/content error:", err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -149,7 +158,9 @@ router.patch("/admin/content/:id", authMiddleware, requireAdmin, async (req, res
 router.patch("/admin/content/:id/publish", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("CONTENT ID:", id);
     const target = await findContentItem(id);
+    console.log("NOCODB FILTER:", `(Id,eq,${Number(id)})`, "→ target:", target?.nocodb_id ?? target?.id ?? null);
     if (!target) return res.status(404).json({ success: false, message: "Contenido no encontrado" });
 
     const recordId = target.nocodb_id || target.id;
@@ -173,7 +184,9 @@ router.patch("/admin/content/:id/publish", authMiddleware, requireAdmin, async (
 router.delete("/admin/content/:id", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
+    console.log("CONTENT ID:", id);
     const target = await findContentItem(id);
+    console.log("NOCODB FILTER:", `(Id,eq,${Number(id)})`, "→ target:", target?.nocodb_id ?? target?.id ?? null);
     if (!target) return res.status(404).json({ success: false, message: "Contenido no encontrado" });
 
     const recordId = target.nocodb_id || target.id;

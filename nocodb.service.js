@@ -102,17 +102,17 @@ function extractList(result) {
    CACHE
 =========================== */
 
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 5 * 60_000; // 5 min default
 
-// Tablas estables → TTL más largo
 const TABLE_TTL = {
-  content:      5 * 60_000,
-  modules:      5 * 60_000,
-  user_modules: 5 * 60_000,
-  users:        2 * 60_000,
-  projects:     2 * 60_000,
-  tasks:        2 * 60_000,
-  leads:        2 * 60_000,
+  content:      10 * 60_000,
+  modules:      10 * 60_000,
+  user_modules: 10 * 60_000,
+  users:        10 * 60_000,
+  projects:      5 * 60_000,
+  tasks:         5 * 60_000,
+  leads:         5 * 60_000,
+  activity_log:  5 * 60_000,
 };
 
 const _cache    = new Map();
@@ -286,12 +286,15 @@ async function sendNotificationToMany(userUuids, type, title, message, link = ""
    EXPORTS
 =========================== */
 
-// Precalienta todas las tablas del admin para que el primer request sea rápido
+// Precalienta en lotes de 2 para no saturar el rate limit de NocoDB
 async function warmCache() {
-  const tables = ["users", "leads", "projects", "tasks", "modules", "user_modules", "content", "activity_log"];
-  await Promise.allSettled(
-    tables.filter(t => TABLES[t]).map(t => getAll(t).catch(() => {}))
-  );
+  const tables = ["users", "projects", "tasks", "content", "modules", "user_modules", "leads", "activity_log"]
+    .filter(t => TABLES[t]);
+
+  for (let i = 0; i < tables.length; i += 2) {
+    await Promise.allSettled(tables.slice(i, i + 2).map(t => getAll(t).catch(() => {})));
+    if (i + 2 < tables.length) await sleep(400);
+  }
 }
 
 export const db = {

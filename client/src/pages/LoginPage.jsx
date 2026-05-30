@@ -2,9 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout.jsx";
 import { apiFetch, getCurrentUser } from "../lib/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
 export default function LoginPage() {
-  const navigate = useNavigate();
+  const navigate    = useNavigate();
+  const { setUser } = useAuth();
   const [status, setStatus] = useState({ text: "", type: "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,6 +28,7 @@ export default function LoginPage() {
       setStatus({ text: "Login correcto. Redirigiendo…", type: "success" });
       try {
         const me = await getCurrentUser();
+        setUser(me.user); // Actualiza AuthContext para que ProtectedRoute no rebote
         const role = String(me?.user?.role || "").toLowerCase();
         setTimeout(() => navigate(role === "admin" ? "/admin" : "/panel", { replace: true }), 400);
       } catch {

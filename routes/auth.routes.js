@@ -79,9 +79,12 @@ router.post("/login", loginLimiter, async (req, res) => {
       return res.status(400).json({ success: false, message: "Email y contraseña son obligatorios" });
     }
 
-    const users = await getAllUsers();
-    const user  = users.find(u => normalizeEmail(u.email) === normalizeEmail(email));
+    const users   = await getAllUsers();
+    const matches = users.filter(u => normalizeEmail(u.email) === normalizeEmail(email));
+    // Si hay duplicados, preferir el registro admin activo
+    const user = matches.find(u => normalizeRole(u.role) === "admin") || matches[0];
     if (!user) return res.status(401).json({ success: false, message: "Credenciales inválidas" });
+    console.log(`[login] ${email} → uuid:${user.uuid} role:${user.role} status:${user.status}`);
 
     const hash = user.password_hash || user.passwordHash;
     if (!hash)  return res.status(401).json({ success: false, message: "El usuario no tiene contraseña válida" });

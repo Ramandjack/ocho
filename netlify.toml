@@ -3,8 +3,7 @@
   publish   = "client/dist"
 
 [build.environment]
-  NODE_VERSION    = "20"
-  VITE_BASE_URL   = "/"
+  NODE_VERSION = "20"
 
 # ── Proxy API → Render ───────────────────────────────────────────────────────
 # Reemplazá TU-APP con el subdominio real de Render (ej: ocho-api)

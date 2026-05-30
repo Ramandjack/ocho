@@ -26,7 +26,7 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
   }
 
   if (requireAdmin && role !== "admin") {
-    return <Navigate to="/app" replace />;
+    return <Navigate to="/panel" replace />;
   }
 
   return children;

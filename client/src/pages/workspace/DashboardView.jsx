@@ -96,7 +96,7 @@ export default function DashboardView() {
         <section className="dashboard-section">
           <div className="dashboard-section-head">
             <h2 className="dashboard-section-title">Tareas recientes</h2>
-            <Link to="/app/tasks" className="dashboard-section-link">Ver todas</Link>
+            <Link to="/panel/tasks" className="dashboard-section-link">Ver todas</Link>
           </div>
 
           {!tasks.length ? (
@@ -145,7 +145,7 @@ export default function DashboardView() {
         <section className="dashboard-content-section">
           <div className="dashboard-section-head">
             <h2 className="dashboard-section-title">Contenido reciente</h2>
-            <Link to="/app/content" className="dashboard-section-link">Ver todo</Link>
+            <Link to="/panel/content" className="dashboard-section-link">Ver todo</Link>
           </div>
 
           <div className="dashboard-content-grid">
@@ -153,7 +153,7 @@ export default function DashboardView() {
               const color = TYPE_COLOR[item.type] || { bg: "rgba(255,255,255,.06)", text: "rgba(255,255,255,.5)" };
               const date  = item.published_at || item.updated_at || item.CreatedAt;
               return (
-                <Link key={item.uuid || item.id} to="/app/content" className="dashboard-content-card">
+                <Link key={item.uuid || item.id} to="/panel/content" className="dashboard-content-card">
                   {item.cover_url && (
                     <div className="dashboard-content-cover">
                       <img src={item.cover_url} alt={item.title} loading="lazy" />

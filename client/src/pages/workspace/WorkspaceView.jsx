@@ -146,7 +146,7 @@ export default function WorkspaceView() {
 
   return (
     <div className="canvas-view">
-      <Link to="/app/projects" className="canvas-back">← Proyectos</Link>
+      <Link to="/panel/projects" className="canvas-back">← Proyectos</Link>
 
       {/* ── Canvas header ──────────────────────────────────── */}
       <div className="canvas-header">

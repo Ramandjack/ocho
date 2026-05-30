@@ -1,0 +1,20 @@
+[build]
+  command   = "npm run build"
+  publish   = "client/dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# ── Proxy API → Render ───────────────────────────────────────────────────────
+# Reemplazá TU-APP con el subdominio real de Render (ej: ocho-api)
+[[redirects]]
+  from   = "/api/*"
+  to     = "https://TU-APP.onrender.com/api/:splat"
+  status = 200
+  force  = true
+
+# ── SPA fallback (React Router) ──────────────────────────────────────────────
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200

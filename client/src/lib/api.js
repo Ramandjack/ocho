@@ -6,10 +6,10 @@ export function getApiBase() {
   if (import.meta.env.DEV) return "";
   const h = typeof window !== "undefined" ? window.location.hostname : "";
   if (h === "127.0.0.1" || h === "localhost") {
-    const port = window.location.port || "3000";
-    return `http://${h}:${port}`;
+    return `http://${h}:${window.location.port || "3000"}`;
   }
-  return "https://api.ocho.com.ar";
+  // Producción: Netlify proxea /api/* → Render; Express monolito usa mismo origen
+  return "";
 }
 
 export async function apiFetch(path, options = {}) {

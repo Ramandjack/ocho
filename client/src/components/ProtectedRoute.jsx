@@ -17,7 +17,14 @@ export default function ProtectedRoute({ children, requireAdmin = false }) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  const role = String(user.role || "").toLowerCase();
+  const role   = String(user.role   || "").toLowerCase();
+  const status = String(user.status || "active").toLowerCase();
+
+  // Usuarios no activos (pending/rejected/banned) no acceden al panel
+  if (role !== "admin" && status !== "active") {
+    return <Navigate to="/login" replace />;
+  }
+
   if (requireAdmin && role !== "admin") {
     return <Navigate to="/panel" replace />;
   }

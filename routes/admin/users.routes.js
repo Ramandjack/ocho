@@ -34,11 +34,41 @@ router.patch("/admin/users/:uuid/role", authMiddleware, requireAdmin, async (req
   }
 });
 
+router.patch("/admin/users/:uuid/approve", authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { uuid } = req.params;
+    const updated  = await updateUserFieldInNoco(uuid, {
+      status:      "active",
+      approved_at: new Date().toISOString(),
+      approved_by: req.user.sub,
+    });
+    await db.logActivity(req.user.sub, "approve_user", "user", uuid, "Usuario aprobado");
+    console.log(`[admin] approve user ${uuid} by ${req.user.sub}`);
+    return res.json({ success: true, message: "Usuario aprobado", user: sanitizeUser(updated) });
+  } catch (error) {
+    console.error("Error en approve:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+router.patch("/admin/users/:uuid/reject", authMiddleware, requireAdmin, async (req, res) => {
+  try {
+    const { uuid } = req.params;
+    const updated  = await updateUserFieldInNoco(uuid, { status: "rejected" });
+    await db.logActivity(req.user.sub, "reject_user", "user", uuid, "Usuario rechazado");
+    console.log(`[admin] reject user ${uuid} by ${req.user.sub}`);
+    return res.json({ success: true, message: "Usuario rechazado", user: sanitizeUser(updated) });
+  } catch (error) {
+    console.error("Error en reject:", error);
+    return res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 router.patch("/admin/users/:uuid/status", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { uuid }   = req.params;
     const { status } = req.body || {};
-    const allowed    = ["active","pending","banned"];
+    const allowed    = ["active", "pending", "banned", "rejected"];
     if (!allowed.includes(String(status || "").toLowerCase())) {
       return res.status(400).json({ success: false, message: "Status inválido" });
     }

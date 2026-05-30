@@ -10,7 +10,10 @@ export default function AdminUsers() {
   const [roleFilter, setRoleFilter]     = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [modal, setModal]               = useState(null);
+  const [view, setView]                 = useState("all"); // "all" | "pending"
   const { toasts, show } = useToast();
+
+  const pending = useMemo(() => users.filter(u => (u.status || "active") === "pending"), [users]);
 
   const filtered = useMemo(() => {
     const s = search.toLowerCase();
@@ -33,12 +36,34 @@ export default function AdminUsers() {
   }
 
   async function changeStatus(uuid, newStatus) {
-    const labels = { banned: "banear", active: "activar", pending: "poner en pendiente" };
+    const labels = { banned: "banear", active: "activar", pending: "poner en pendiente", rejected: "rechazar" };
     if (!window.confirm(`¿${labels[newStatus] || newStatus} este usuario?`)) return;
     try {
       const res = await apiFetch(`/api/admin/users/${uuid}/status`, { method: "PATCH", body: JSON.stringify({ status: newStatus }) });
       setUsers(prev => prev.map(u => u.uuid === uuid ? { ...u, status: newStatus } : u));
       show(res.message || `Usuario ${newStatus}`, "success");
+      setModal(null);
+    } catch (err) { show(err.message, "danger"); }
+  }
+
+  async function approveUser(uuid) {
+    try {
+      const res = await apiFetch(`/api/admin/users/${uuid}/approve`, { method: "PATCH" });
+      setUsers(prev => prev.map(u => u.uuid === uuid
+        ? { ...u, status: "active", approved_at: new Date().toISOString() }
+        : u
+      ));
+      show(res.message || "Usuario aprobado", "success");
+      setModal(null);
+    } catch (err) { show(err.message, "danger"); }
+  }
+
+  async function rejectUser(uuid) {
+    if (!window.confirm("¿Rechazar esta solicitud de acceso?")) return;
+    try {
+      const res = await apiFetch(`/api/admin/users/${uuid}/reject`, { method: "PATCH" });
+      setUsers(prev => prev.map(u => u.uuid === uuid ? { ...u, status: "rejected" } : u));
+      show(res.message || "Solicitud rechazada", "success");
       setModal(null);
     } catch (err) { show(err.message, "danger"); }
   }
@@ -62,10 +87,75 @@ export default function AdminUsers() {
           <h1>Gestión de usuarios</h1>
           <p>{users.length} usuarios registrados</p>
         </div>
-        <button type="button" className="admin-btn" onClick={() => exportCSV(filtered, "ocho_usuarios.csv", show)}>
-          ↓ Exportar CSV
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          {pending.length > 0 && (
+            <button
+              type="button"
+              className={`admin-btn${view === "pending" ? " primary" : " warning"}`}
+              onClick={() => setView(v => v === "pending" ? "all" : "pending")}
+            >
+              {pending.length} solicitud{pending.length !== 1 ? "es" : ""} pendiente{pending.length !== 1 ? "s" : ""}
+            </button>
+          )}
+          <button type="button" className="admin-btn" onClick={() => exportCSV(filtered, "ocho_usuarios.csv", show)}>
+            ↓ Exportar CSV
+          </button>
+        </div>
       </section>
+
+      {/* Solicitudes pendientes */}
+      {view === "pending" && (
+        <section className="admin-full" style={{ marginBottom: 0 }}>
+          <article className="admin-card" style={{ borderColor: "var(--admin-warning, #f59e0b)" }}>
+            <h3 style={{ marginBottom: 12 }}>Solicitudes de acceso pendientes</h3>
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th>Usuario</th><th>Empresa</th><th>Interés</th><th>Perfil</th><th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pending.length === 0 ? (
+                    <tr><td colSpan={5} className="admin-muted" style={{ textAlign: "center", padding: 24 }}>Sin solicitudes pendientes.</td></tr>
+                  ) : pending.map(u => {
+                    const name = u.full_name || `${u.first_name || ""} ${u.last_name || ""}`.trim() || "—";
+                    return (
+                      <tr key={u.uuid}>
+                        <td>
+                          <div className="user-cell">
+                            <div className="user-avatar">{getInitials(name)}</div>
+                            <div>
+                              <strong>{name}</strong>
+                              <span className="admin-muted" style={{ display: "block", fontSize: "0.82rem" }}>{u.email}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="admin-muted">{u.company || "—"}</td>
+                        <td className="admin-muted" style={{ fontSize: "0.82rem" }}>{u.interest || "—"}</td>
+                        <td className="admin-muted" style={{ fontSize: "0.82rem", maxWidth: 200 }}>
+                          {u.profile ? u.profile.slice(0, 80) + (u.profile.length > 80 ? "…" : "") : "—"}
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button type="button" className="admin-btn green" onClick={() => approveUser(u.uuid)}>
+                              ✓ Aprobar
+                            </button>
+                            <button type="button" className="admin-btn danger" onClick={() => rejectUser(u.uuid)}>
+                              ✕ Rechazar
+                            </button>
+                            <button type="button" className="admin-btn" onClick={() => setModal({ user: u })}>Ver</button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      )}
 
       <section className="admin-full">
         <article className="admin-card">
@@ -81,12 +171,14 @@ export default function AdminUsers() {
             <select className="admin-control" value={roleFilter} onChange={e => setRoleFilter(e.target.value)}>
               <option value="all">Todos los roles</option>
               <option value="admin">Admin</option>
+              <option value="client">Client</option>
               <option value="member">Member</option>
             </select>
             <select className="admin-control" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
               <option value="all">Todos los estados</option>
               <option value="active">Activo</option>
               <option value="pending">Pendiente</option>
+              <option value="rejected">Rechazado</option>
               <option value="banned">Suspendido</option>
             </select>
           </div>
@@ -106,6 +198,7 @@ export default function AdminUsers() {
                   const role   = normalizeRole(u.role);
                   const status = u.status || "active";
                   const name   = u.full_name || `${u.first_name || ""} ${u.last_name || ""}`.trim() || "—";
+                  const statusColor = { active: "success", pending: "warning", rejected: "danger", banned: "danger" }[status] || "";
                   return (
                     <tr key={u.uuid}>
                       <td>
@@ -118,22 +211,29 @@ export default function AdminUsers() {
                         </div>
                       </td>
                       <td><span className={`admin-pill ${role === "admin" ? "warning" : ""}`}>{role}</span></td>
-                      <td>
-                        <span className={`admin-pill ${status === "active" ? "success" : status === "pending" ? "warning" : "danger"}`}>
-                          {status}
-                        </span>
-                      </td>
+                      <td><span className={`admin-pill ${statusColor}`}>{status}</span></td>
                       <td className="admin-muted" style={{ fontSize: "0.88rem" }}>{u.last_login_at ? formatDate(u.last_login_at) : "Nunca"}</td>
                       <td className="admin-muted" style={{ fontSize: "0.82rem" }}>{u.segment || "—"}</td>
                       <td>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {status === "pending" && (
+                            <>
+                              <button type="button" className="admin-btn green" onClick={() => approveUser(u.uuid)}>✓ Aprobar</button>
+                              <button type="button" className="admin-btn danger" onClick={() => rejectUser(u.uuid)}>✕ Rechazar</button>
+                            </>
+                          )}
+                          {status === "active" && role !== "admin" && (
+                            <button type="button" className="admin-btn danger" onClick={() => changeStatus(u.uuid, "banned")}>⊘ Banear</button>
+                          )}
+                          {status === "banned" && (
+                            <button type="button" className="admin-btn" onClick={() => changeStatus(u.uuid, "active")}>✓ Activar</button>
+                          )}
+                          {status === "rejected" && (
+                            <button type="button" className="admin-btn" onClick={() => approveUser(u.uuid)}>✓ Aprobar</button>
+                          )}
                           <button type="button" className="admin-btn" onClick={() => changeRole(u.uuid, role === "admin" ? "member" : "admin")}>
                             {role === "admin" ? "↓ Member" : "↑ Admin"}
                           </button>
-                          {status === "banned"
-                            ? <button type="button" className="admin-btn" style={{ color: "var(--aok)" }} onClick={() => changeStatus(u.uuid, "active")}>✓ Activar</button>
-                            : <button type="button" className="admin-btn danger" onClick={() => changeStatus(u.uuid, "banned")}>⊘ Banear</button>
-                          }
                           <button type="button" className="admin-btn" onClick={() => setModal({ user: u })}>Ver</button>
                         </div>
                       </td>
@@ -152,6 +252,8 @@ export default function AdminUsers() {
           onClose={() => setModal(null)}
           changeRole={changeRole}
           changeStatus={changeStatus}
+          approveUser={approveUser}
+          rejectUser={rejectUser}
           deleteUser={deleteUser}
         />
       )}
@@ -161,7 +263,7 @@ export default function AdminUsers() {
   );
 }
 
-function UserModal({ user, onClose, changeRole, changeStatus, deleteUser }) {
+function UserModal({ user, onClose, changeRole, changeStatus, approveUser, rejectUser, deleteUser }) {
   const name   = user.full_name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || "—";
   const role   = normalizeRole(user.role);
   const status = user.status || "active";
@@ -177,14 +279,25 @@ function UserModal({ user, onClose, changeRole, changeStatus, deleteUser }) {
             <span className="admin-muted">{user.email}</span>
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+            {status === "pending" && (
+              <>
+                <button type="button" className="admin-btn green" onClick={() => approveUser(user.uuid)}>✓ Aprobar</button>
+                <button type="button" className="admin-btn danger" onClick={() => rejectUser(user.uuid)}>✕ Rechazar</button>
+              </>
+            )}
+            {status === "active" && (
+              <button type="button" className="admin-btn danger" onClick={() => changeStatus(user.uuid, "banned")}>⊘ Banear</button>
+            )}
+            {status === "banned" && (
+              <button type="button" className="admin-btn" onClick={() => changeStatus(user.uuid, "active")}>✓ Activar</button>
+            )}
+            {status === "rejected" && (
+              <button type="button" className="admin-btn" onClick={() => approveUser(user.uuid)}>✓ Aprobar igual</button>
+            )}
             <button type="button" className="admin-btn" onClick={() => changeRole(user.uuid, role === "admin" ? "member" : "admin")}>
               {role === "admin" ? "↓ Member" : "↑ Admin"}
             </button>
-            {status === "banned"
-              ? <button type="button" className="admin-btn" style={{ color: "var(--aok)" }} onClick={() => changeStatus(user.uuid, "active")}>✓ Activar</button>
-              : <button type="button" className="admin-btn danger" onClick={() => changeStatus(user.uuid, "banned")}>⊘ Banear</button>
-            }
-            <button type="button" className="admin-btn danger" onClick={() => deleteUser(user.uuid, name)}>🗑 Eliminar</button>
+            <button type="button" className="admin-btn danger" onClick={() => deleteUser(user.uuid, name)}>Eliminar</button>
           </div>
         </div>
         <div className="modal-grid">
@@ -199,6 +312,7 @@ function UserModal({ user, onClose, changeRole, changeStatus, deleteUser }) {
           <ModalRow label="Interés"          value={user.interest} />
           <ModalRow label="Fuente"           value={user.source} />
           <ModalRow label="Último login"     value={user.last_login_at ? formatDate(user.last_login_at) : "Nunca"} />
+          <ModalRow label="Aprobado"         value={user.approved_at ? formatDate(user.approved_at) : "—"} />
           <ModalRow label="Newsletter"       value={user.newsletter_consent ? "✓ Sí" : "No"} />
         </div>
         {user.profile && (

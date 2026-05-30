@@ -55,18 +55,17 @@ router.post("/register", registerLimiter, async (req, res) => {
       newsletter_consent: Boolean(payload.newsletter_consent),
       data_consent:       Boolean(payload.data_consent),
       password_hash,
-      role:               "member",
-      status:             "active",
+      role:               "client",
+      status:             "pending",
       source:             "register_form",
       segment:            inferUserSegment(String(payload.interest).trim()),
       last_login_at:      null,
     };
 
-    const createdUser = await createUserRecord(newUser);
-    const token       = createToken(createdUser);
-    setAuthCookie(res, token);
+    await createUserRecord(newUser);
 
-    return res.status(201).json({ success: true, message: "Cuenta creada correctamente", user: sanitizeUser(createdUser) });
+    // No se emite cookie: el acceso queda bloqueado hasta aprobación del admin
+    return res.status(201).json({ success: true, pending: true, message: "Tu solicitud fue recibida. Un administrador revisará tu cuenta pronto." });
   } catch (error) {
     console.error("Error en /api/register:", error);
     return res.status(500).json({ success: false, message: error.message || "Error interno al registrar usuario" });
@@ -90,7 +89,14 @@ router.post("/login", loginLimiter, async (req, res) => {
     const valid = await bcrypt.compare(String(password), hash);
     if (!valid) return res.status(401).json({ success: false, message: "Credenciales inválidas" });
 
-    if ((user.status || "active") === "banned") {
+    const userStatus = user.status || "active";
+    if (userStatus === "pending") {
+      return res.status(403).json({ success: false, message: "Tu cuenta está pendiente de aprobación por un administrador." });
+    }
+    if (userStatus === "rejected") {
+      return res.status(403).json({ success: false, message: "Tu solicitud de acceso fue rechazada. Contactá al administrador." });
+    }
+    if (userStatus === "banned") {
       return res.status(403).json({ success: false, message: "Tu cuenta ha sido suspendida. Contactá al administrador." });
     }
 
@@ -111,6 +117,14 @@ router.get("/me", authMiddleware, async (req, res) => {
     const users  = await getAllUsers();
     const dbUser = users.find(u => u.uuid === req.user.sub) || null;
     if (!dbUser) return res.status(404).json({ success: false, message: "Usuario no encontrado" });
+
+    // Admins siempre pasan; no-admins deben tener status active
+    if (normalizeRole(dbUser.role) !== "admin") {
+      const st = dbUser.status || "active";
+      if (st === "pending")  return res.status(403).json({ success: false, message: "Tu cuenta está pendiente de aprobación por un administrador." });
+      if (st === "rejected") return res.status(403).json({ success: false, message: "Tu solicitud de acceso fue rechazada. Contactá al administrador." });
+      if (st === "banned")   return res.status(403).json({ success: false, message: "Tu cuenta ha sido suspendida. Contactá al administrador." });
+    }
 
     return res.json({
       success: true,

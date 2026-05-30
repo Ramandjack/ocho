@@ -45,12 +45,20 @@ export default function RegisterPage() {
     };
 
     try {
-      await apiFetch("/api/register", {
+      const r = await apiFetch("/api/register", {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      setStatus({ text: "Cuenta creada correctamente. Redirigiendo…", type: "success" });
-      setTimeout(() => navigate("/panel", { replace: true }), 900);
+      if (r.pending) {
+        setStatus({
+          text: "¡Solicitud enviada! Tu cuenta está pendiente de aprobación por un administrador. Te notificaremos cuando esté activa.",
+          type: "success",
+        });
+        // No se redirige: el usuario no tiene acceso hasta ser aprobado
+      } else {
+        setStatus({ text: "Cuenta creada correctamente. Redirigiendo…", type: "success" });
+        setTimeout(() => navigate("/panel", { replace: true }), 900);
+      }
     } catch (err) {
       setStatus({ text: err.message || "No se pudo crear la cuenta", type: "error" });
     } finally {

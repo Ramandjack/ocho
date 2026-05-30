@@ -34,7 +34,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
 
 const clientDist = path.join(__dirname, "client", "dist");
-const spaIndex   = path.join(clientDist, "index.html");
+const spaIndex   = path.join(clientDist, "app", "index.html");
 const spaReady   = fs.existsSync(spaIndex);
 
 const PORT          = Number(process.env.PORT || 3000);
@@ -97,7 +97,7 @@ app.use("/en",     express.static(path.join(__dirname, "en")));
 app.use("/nl",     express.static(path.join(__dirname, "nl")));
 
 if (spaReady) {
-  app.use("/app/assets", express.static(path.join(clientDist, "assets")));
+  app.use("/app/assets", express.static(path.join(clientDist, "app", "assets")));
 }
 
 /* =========================

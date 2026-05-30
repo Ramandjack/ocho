@@ -11,7 +11,7 @@ import "../../assets/css/pages.css";
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ErrorBoundary>
-      <BrowserRouter basename="/app">
+      <BrowserRouter>
         <AuthProvider>
           <App />
         </AuthProvider>

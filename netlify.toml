@@ -1,8 +1,6 @@
 [build]
-  # 1. Instala y buildea el cliente React (sale en client/dist/app/)
-  # 2. Copia el index.html estático (landing) a client/dist/
-  # 3. Copia los assets estáticos (CSS, imágenes) a client/dist/assets/
-  command   = "npm run client:install && npm run client:build && cp index.html client/dist/index.html && cp -r assets client/dist/assets"
+  # React SPA en client/dist/ + assets estáticos (imágenes, CSS) en client/dist/assets/
+  command   = "npm run client:install && npm run client:build && cp -r assets client/dist/assets"
   publish   = "client/dist"
 
 [build.environment]
@@ -15,11 +13,8 @@
   status = 200
   force  = true
 
-# ── React SPA: todas las rutas bajo /app/* ───────────────────────────────────
+# ── React SPA: todas las rutas van al index.html de React ────────────────────
 [[redirects]]
-  from   = "/app/*"
-  to     = "/app/index.html"
+  from   = "/*"
+  to     = "/index.html"
   status = 200
-
-# ── / sirve client/dist/index.html (landing estática) automáticamente ────────
-# No se necesita redirect: Netlify sirve index.html para / por defecto

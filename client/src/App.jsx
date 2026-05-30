@@ -1,6 +1,9 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute       from "./components/ProtectedRoute.jsx";
 
+// Public
+import LandingPage          from "./pages/LandingPage.jsx";
+
 // Auth
 import LoginPage            from "./pages/LoginPage.jsx";
 import RegisterPage         from "./pages/RegisterPage.jsx";
@@ -61,8 +64,8 @@ export default function App() {
         <Route path="security"    element={<AdminSecurity />} />
       </Route>
 
-      <Route path="/"  element={<Navigate to="login" replace />} />
-      <Route path="*"  element={<Navigate to="login" replace />} />
+      <Route path="/"  element={<LandingPage />} />
+      <Route path="*"  element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

@@ -3,9 +3,9 @@ import react from "@vitejs/plugin-react";
 
 export default defineConfig({
   plugins: [react()],
-  base: "/app/",
+  base: "/",
   build: {
-    outDir: "dist/app",   // React SPA queda en client/dist/app/
+    outDir: "dist",
     emptyOutDir: true,
   },
   server: {

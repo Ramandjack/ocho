@@ -1,31 +1,28 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { logoutRequest } from "../lib/api.js";
+import { useAuth } from "../context/AuthContext.jsx";
 
-/**
- * Ruta dedicada a cerrar sesión: POST /api/logout y redirección a login.
- * No hay AuthProvider aún; la sesión real vive en la cookie HttpOnly.
- */
 export default function LogoutPage() {
-  const navigate = useNavigate();
+  const navigate    = useNavigate();
+  const { setUser } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
 
     (async () => {
       try {
-        await logoutRequest();
+        await logoutRequest(); // limpia cookie en el servidor
       } finally {
         if (!cancelled) {
+          setUser(null); // limpia AuthContext — crítico para aislar sesiones
           navigate("/login", { replace: true });
         }
       }
     })();
 
-    return () => {
-      cancelled = true;
-    };
-  }, [navigate]);
+    return () => { cancelled = true; };
+  }, [navigate, setUser]);
 
   return (
     <div className="auth-body" style={{ minHeight: "40vh", display: "grid", placeItems: "center" }}>

@@ -1,4 +1,4 @@
-import { NavLink, Link, Outlet } from "react-router-dom";
+import { NavLink, Link, Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import { AdminDataProvider, useAdminData } from "../../context/AdminDataContext.jsx";
 import "./admin-console.css";
@@ -35,6 +35,12 @@ function AdminMain() {
 
 export default function AdminLayout() {
   const { user } = useAuth();
+
+  // Guard de seguridad: rechaza cualquier sesión que no sea admin explícitamente
+  if (!user || String(user.role || "").toLowerCase() !== "admin") {
+    return <Navigate to="/panel" replace />;
+  }
+
   const adminName = user?.full_name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Admin";
 
   return (

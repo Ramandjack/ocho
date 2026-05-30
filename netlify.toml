@@ -9,7 +9,7 @@
 # Reemplazá TU-APP con el subdominio real de Render (ej: ocho-api)
 [[redirects]]
   from   = "/api/*"
-  to     = "https://TU-APP.onrender.com/api/:splat"
+  to     = "https://api.ocho.com.ar/api/:splat"
   status = 200
   force  = true
 

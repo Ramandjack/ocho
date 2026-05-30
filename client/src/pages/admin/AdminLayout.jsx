@@ -38,7 +38,7 @@ export default function AdminLayout() {
 
   // Guard de seguridad: rechaza cualquier sesión que no sea admin explícitamente
   if (!user || String(user.role || "").toLowerCase() !== "admin") {
-    return <Navigate to="/panel" replace />;
+    return <Navigate to="/app" replace />;
   }
 
   const adminName = user?.full_name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Admin";
@@ -68,7 +68,7 @@ export default function AdminLayout() {
             </div>
             <div className="admin-nav-group">
               <span className="admin-nav-label">Acciones</span>
-              <Link to="/panel">← Panel cliente</Link>
+              <Link to="/app">← Panel cliente</Link>
               <Link to="/logout">Cerrar sesión</Link>
             </div>
           </nav>

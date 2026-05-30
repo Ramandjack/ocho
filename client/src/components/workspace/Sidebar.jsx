@@ -2,15 +2,15 @@ import { NavLink, Link } from "react-router-dom";
 import { useNotifications } from "../../hooks/useNotifications.js";
 
 const NAV_PRIMARY = [
-  { to: "/panel",          label: "Inicio",    end: true },
-  { to: "/panel/projects", label: "Proyectos" },
-  { to: "/panel/tasks",    label: "Tareas" },
+  { to: "/app",          label: "Inicio",    end: true },
+  { to: "/app/projects", label: "Proyectos" },
+  { to: "/app/tasks",    label: "Tareas" },
 ];
 
 const NAV_SECONDARY = [
-  { to: "/panel/content",   label: "Contenido" },
-  { to: "/panel/resources", label: "Recursos" },
-  { to: "/panel/ai",        label: "IA" },
+  { to: "/app/content",   label: "Contenido" },
+  { to: "/app/resources", label: "Recursos" },
+  { to: "/app/ai",        label: "IA" },
 ];
 
 export default function Sidebar({ user }) {
@@ -37,7 +37,7 @@ export default function Sidebar({ user }) {
         ))}
 
         <NavLink
-          to="/panel/activity"
+          to="/app/activity"
           className={({ isActive }) => `sidebar-link${isActive ? " active" : ""}`}
         >
           Actividad

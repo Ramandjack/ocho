@@ -30,9 +30,9 @@ export default function LoginPage() {
         const me = await getCurrentUser();
         setUser(me.user); // Actualiza AuthContext antes de navegar
         const role = String(me?.user?.role || "").toLowerCase();
-        setTimeout(() => navigate(role === "admin" ? "/admin" : "/panel", { replace: true }), 400);
+        setTimeout(() => navigate(role === "admin" ? "/admin" : "/app", { replace: true }), 400);
       } catch {
-        setTimeout(() => navigate("/panel", { replace: true }), 400);
+        setTimeout(() => navigate("/app", { replace: true }), 400);
       }
     } catch (err) {
       setStatus({ text: err.message || "No se pudo iniciar sesión", type: "error" });

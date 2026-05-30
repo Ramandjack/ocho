@@ -57,7 +57,7 @@ export default function RegisterPage() {
         // No se redirige: el usuario no tiene acceso hasta ser aprobado
       } else {
         setStatus({ text: "Cuenta creada correctamente. Redirigiendo…", type: "success" });
-        setTimeout(() => navigate("/panel", { replace: true }), 900);
+        setTimeout(() => navigate("/app", { replace: true }), 900);
       }
     } catch (err) {
       setStatus({ text: err.message || "No se pudo crear la cuenta", type: "error" });

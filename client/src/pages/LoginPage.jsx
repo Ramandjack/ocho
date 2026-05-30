@@ -28,13 +28,11 @@ export default function LoginPage() {
       setStatus({ text: "Login correcto. Redirigiendo…", type: "success" });
       try {
         const me = await getCurrentUser();
-        setUser(me.user);
+        setUser(me.user); // Actualiza AuthContext antes de navegar
         const role = String(me?.user?.role || "").toLowerCase();
-        const dest  = role === "admin" ? "/app/admin" : "/app/panel";
-        // Hard reload: limpia todo el estado React entre sesiones de distintos usuarios
-        setTimeout(() => { window.location.replace(dest); }, 400);
+        setTimeout(() => navigate(role === "admin" ? "/admin" : "/panel", { replace: true }), 400);
       } catch {
-        setTimeout(() => { window.location.replace("/app/panel"); }, 400);
+        setTimeout(() => navigate("/panel", { replace: true }), 400);
       }
     } catch (err) {
       setStatus({ text: err.message || "No se pudo iniciar sesión", type: "error" });

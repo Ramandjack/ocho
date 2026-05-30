@@ -1,9 +1,11 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [react()],
-  base: "/app/",
+  // En Express la SPA vive en /app/; en Netlify en la raíz /.
+  // VITE_BASE_URL=/ al buildear para Netlify.
+  base: process.env.VITE_BASE_URL || "/app/",
   build: {
     outDir: "dist",
     emptyOutDir: true,
@@ -17,4 +19,4 @@ export default defineConfig({
       },
     },
   },
-});
+}));

@@ -3,7 +3,7 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
-import { db } from "../nocodb.service.js";
+import { db } from "../services/nocodb.service.js";
 import { authMiddleware } from "../middleware/auth.js";
 
 const __filename  = fileURLToPath(import.meta.url);
@@ -11,7 +11,31 @@ const __dirname   = path.dirname(__filename);
 const UPLOADS_DIR = path.join(__dirname, "..", "uploads");
 if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
-const BLOCKED_EXTS = new Set([".exe",".bat",".sh",".cmd",".msi",".ps1",".dll"]);
+const BLOCKED_EXTS = new Set([".exe",".bat",".sh",".cmd",".msi",".ps1",".dll",
+  ".vbs",".js",".jar",".php",".py",".rb",".pl",".asp",".aspx",".jsp"]);
+
+// Firmas de bytes conocidas de ejecutables y scripts (independientes de la extensión).
+// Cubre el caso en que un archivo peligroso se renombra con una extensión inofensiva.
+const BLOCKED_SIGNATURES = [
+  [0x4d, 0x5a],             // PE  — .exe, .dll (Windows)
+  [0x7f, 0x45, 0x4c, 0x46], // ELF — binarios Linux/Unix
+  [0xcf, 0xfa, 0xed, 0xfe], // Mach-O 64-bit (macOS)
+  [0xce, 0xfa, 0xed, 0xfe], // Mach-O 32-bit (macOS)
+  [0xca, 0xfe, 0xba, 0xbe], // Mach-O fat / Java .class
+  [0x23, 0x21],             // #! shebang — shell scripts de cualquier extensión
+];
+
+function hasDangerousMagicBytes(filePath) {
+  try {
+    const buf = Buffer.alloc(4);
+    const fd  = fs.openSync(filePath, "r");
+    fs.readSync(fd, buf, 0, 4, 0);
+    fs.closeSync(fd);
+    return BLOCKED_SIGNATURES.some(sig => sig.every((byte, i) => buf[i] === byte));
+  } catch {
+    return true; // Si no se puede leer, rechazar por defecto
+  }
+}
 
 const upload = multer({
   storage: multer.diskStorage({
@@ -51,6 +75,12 @@ router.post("/user/resources/upload", authMiddleware, (req, res) => {
   upload.single("file")(req, res, err => {
     if (err)       return res.status(400).json({ success: false, message: err.message });
     if (!req.file) return res.status(400).json({ success: false, message: "No se recibió archivo" });
+
+    if (hasDangerousMagicBytes(req.file.path)) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ success: false, message: "Tipo de archivo no permitido" });
+    }
+
     return res.json({ success: true, url: `/api/files/${req.file.filename}`, original_name: req.file.originalname });
   });
 });

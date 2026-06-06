@@ -1,3 +1,9 @@
+function getCsrfToken() {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/(?:^|;\s*)ocho_csrf=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 /**
  * Base URL para la API: mismo origen cuando la SPA se sirve desde Express;
  * en dev con Vite, el proxy envía /api al backend.
@@ -14,10 +20,14 @@ export function getApiBase() {
 
 export async function apiFetch(path, options = {}) {
   const base = getApiBase();
+  const method = (options.method || "GET").toUpperCase();
+  const isMutating = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
+
   const response = await fetch(`${base}${path}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
+      ...(isMutating ? { "X-CSRF-Token": getCsrfToken() } : {}),
       ...(options.headers || {}),
     },
     ...options,
@@ -41,6 +51,7 @@ export async function apiUpload(path, formData) {
   const response = await fetch(`${base}${path}`, {
     method: "POST",
     credentials: "include",
+    headers: { "X-CSRF-Token": getCsrfToken() },
     body: formData,
     // No Content-Type: browser sets multipart/form-data with boundary
   });

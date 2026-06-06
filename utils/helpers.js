@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 export function normalizeEmail(email) {
   return String(email || "").trim().toLowerCase();
@@ -16,30 +17,16 @@ export function sanitizeUser(user) {
   return safe;
 }
 
+// El JWT solo identifica al usuario. El rol y el resto de datos se leen
+// de NocoDB en cada request para garantizar que siempre están actualizados.
 export function createToken(user) {
   return jwt.sign(
     {
       sub:   user.uuid,
       email: user.email,
-      role:  normalizeRole(user.role) || "member",
-      first_name: user.first_name || "",
-      last_name:  user.last_name  || "",
-      full_name:  user.full_name  || "",
-      city:       user.city       || "",
-      country:    user.country    || "",
-      phone:      user.phone      || "",
-      company:    user.company    || "",
-      role_title: user.role_title || "",
-      interest:   user.interest   || "",
-      profile:    user.profile    || "",
-      newsletter_consent: Boolean(user.newsletter_consent),
-      data_consent:       Boolean(user.data_consent),
-      status:  user.status  || "active",
-      source:  user.source  || "register_form",
-      segment: user.segment || "newsletter_only",
     },
     process.env.JWT_SECRET || "ocho-dev-secret-change-this",
-    { expiresIn: "7d" }
+    { expiresIn: "24h" }
   );
 }
 
@@ -61,6 +48,28 @@ export function setAuthCookie(res, token) {
 
 export function clearAuthCookie(res) {
   res.clearCookie("ocho_token", { ...getCookieOptions(), maxAge: undefined });
+}
+
+export function generateCsrfToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+function getCsrfCookieOptions() {
+  return {
+    httpOnly: false,
+    secure:   IS_PROD,
+    sameSite: IS_PROD ? "none" : "lax",
+    maxAge:   1000 * 60 * 60 * 24 * 7,
+    path: "/",
+  };
+}
+
+export function setCsrfCookie(res, token) {
+  res.cookie("ocho_csrf", token, getCsrfCookieOptions());
+}
+
+export function clearCsrfCookie(res) {
+  res.clearCookie("ocho_csrf", { ...getCsrfCookieOptions(), maxAge: undefined });
 }
 
 export function inferUserSegment(interest) {

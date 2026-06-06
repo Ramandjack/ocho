@@ -1,8 +1,8 @@
-import { db } from "../nocodb.service.js";
+import { db } from "./nocodb.service.js";
 
 function requireUsersConfig() {
-  if (!process.env.NOCODB_TOKEN || !process.env.NOCODB_USERS_URL) {
-    throw new Error("Faltan NOCODB_TOKEN o NOCODB_USERS_URL en .env");
+  if (!process.env.NOCODB_TOKEN || !process.env.NOCODB_USERS_TABLE) {
+    throw new Error("Faltan NOCODB_TOKEN o NOCODB_USERS_TABLE en .env");
   }
 }
 

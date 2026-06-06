@@ -8,27 +8,36 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import compression from "compression";
 
-import { db } from "./nocodb.service.js";
+import { db } from "./services/nocodb.service.js";
+import { csrfCheck } from "./middleware/auth.js";
+import { apiLimiter } from "./middleware/rateLimits.js";
 
 // Routes
-import authRouter        from "./routes/auth.routes.js";
-import leadRouter        from "./routes/lead.routes.js";
-import adminUsersRouter  from "./routes/admin/users.routes.js";
-import adminLeadsRouter  from "./routes/admin/leads.routes.js";
-import projectsRouter    from "./projects.routes.js";
-import tasksRouter       from "./routes/tasks.routes.js";
+import authRouter          from "./routes/auth.routes.js";
+import leadRouter          from "./routes/lead.routes.js";
+import adminUsersRouter    from "./routes/admin/users.routes.js";
+import adminLeadsRouter    from "./routes/admin/leads.routes.js";
+import projectsRouter      from "./routes/projects.routes.js";
+import tasksRouter         from "./routes/tasks.routes.js";
 import notificationsRouter from "./routes/notifications.routes.js";
-import modulesRouter     from "./routes/modules.routes.js";
-import activityRouter    from "./routes/activity.routes.js";
-import resourcesRouter   from "./routes/resources.routes.js";
-import dashboardRouter   from "./routes/dashboard.routes.js";
-import aiRouter          from "./ai.routes.js";
-import contentRouter     from "./content.routes.js";
-import sseRouter         from "./routes/sse.routes.js";
+import modulesRouter       from "./routes/modules.routes.js";
+import activityRouter      from "./routes/activity.routes.js";
+import resourcesRouter     from "./routes/resources.routes.js";
+import dashboardRouter     from "./routes/dashboard.routes.js";
+import aiRouter            from "./routes/ai.routes.js";
+import contentRouter       from "./routes/content.routes.js";
+import sseRouter           from "./routes/sse.routes.js";
 
 dotenv.config();
 
 const app = express();
+
+// Render (y Netlify) ponen un reverse proxy delante del servidor.
+// Con esta config, req.ip devuelve la IP real del cliente (X-Forwarded-For),
+// no la del proxy. Requerido para que rate limiting funcione por usuario real.
+// NOTA: el store de rate limiting es in-memory (single-instance Render Starter).
+// Para multi-instancia se necesitaría rate-limit-redis.
+app.set("trust proxy", 1);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname  = path.dirname(__filename);
@@ -124,6 +133,8 @@ app.get("/api/health", (_req, res) => {
    RUTAS API
 ========================= */
 
+app.use("/api", apiLimiter);
+app.use("/api", csrfCheck);
 app.use("/api", authRouter);
 app.use("/api", leadRouter);
 app.use("/api", adminUsersRouter);

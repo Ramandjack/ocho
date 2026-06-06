@@ -1,7 +1,7 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
-import { db } from "./nocodb.service.js";
-import { authMiddleware } from "./middleware/auth.js";
+import { db } from "../services/nocodb.service.js";
+import { authMiddleware } from "../middleware/auth.js";
 
 const router = express.Router();
 

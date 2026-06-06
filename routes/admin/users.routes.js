@@ -1,6 +1,6 @@
 import express from "express";
 import bcrypt from "bcryptjs";
-import { db } from "../../nocodb.service.js";
+import { db } from "../../services/nocodb.service.js";
 import { authMiddleware, requireAdmin } from "../../middleware/auth.js";
 import { sanitizeUser } from "../../utils/helpers.js";
 import { getAllUsers, updateUserFieldInNoco } from "../../services/users.service.js";
@@ -54,7 +54,10 @@ router.patch("/admin/users/:uuid/approve", authMiddleware, requireAdmin, async (
 router.patch("/admin/users/:uuid/reject", authMiddleware, requireAdmin, async (req, res) => {
   try {
     const { uuid } = req.params;
-    const updated  = await updateUserFieldInNoco(uuid, { status: "rejected" });
+    const updated  = await updateUserFieldInNoco(uuid, {
+      status:            "rejected",
+      tokens_valid_from: new Date().toISOString(),
+    });
     await db.logActivity(req.user.sub, "reject_user", "user", uuid, "Usuario rechazado");
     console.log(`[admin] reject user ${uuid} by ${req.user.sub}`);
     return res.json({ success: true, message: "Usuario rechazado", user: sanitizeUser(updated) });
@@ -75,7 +78,12 @@ router.patch("/admin/users/:uuid/status", authMiddleware, requireAdmin, async (r
     if (req.user.sub === uuid && status === "banned") {
       return res.status(403).json({ success: false, message: "No podés banearte a vos mismo" });
     }
-    const updated = await updateUserFieldInNoco(uuid, { status: String(status).toLowerCase() });
+    const INVALIDATING_STATUSES = new Set(["banned", "rejected"]);
+    const fields = { status: String(status).toLowerCase() };
+    if (INVALIDATING_STATUSES.has(fields.status)) {
+      fields.tokens_valid_from = new Date().toISOString();
+    }
+    const updated = await updateUserFieldInNoco(uuid, fields);
     await db.logActivity(req.user.sub, "update_status", "user", uuid, `Status → ${status}`);
     return res.json({ success: true, message: `Usuario ${status}`, user: sanitizeUser(updated) });
   } catch (error) {
@@ -112,7 +120,10 @@ router.post("/admin/users/:uuid/reset-password", authMiddleware, requireAdmin, a
       return res.status(400).json({ success: false, message: "La contraseña debe tener al menos 8 caracteres" });
     }
     const hashed = await bcrypt.hash(String(new_password), 10);
-    await updateUserFieldInNoco(uuid, { password_hash: hashed });
+    await updateUserFieldInNoco(uuid, {
+      password_hash:     hashed,
+      tokens_valid_from: new Date().toISOString(),
+    });
     await db.logActivity(req.user.sub, "reset_password", "user", uuid, "Contraseña reseteada por admin");
     return res.json({ success: true, message: "Contraseña actualizada" });
   } catch (error) {

@@ -1,12 +1,12 @@
 import express from "express";
-import { db } from "../../nocodb.service.js";
+import { db } from "../../services/nocodb.service.js";
 import { authMiddleware, requireAdmin } from "../../middleware/auth.js";
 
 const router = express.Router();
 
 router.get("/admin/leads", authMiddleware, requireAdmin, async (_req, res) => {
   try {
-    if (!process.env.NOCODB_LEADS_URL) return res.json({ success: true, leads: [] });
+    if (!process.env.NOCODB_LEADS_TABLE) return res.json({ success: true, leads: [] });
     const leads = await db.getAll("leads");
     return res.json({ success: true, leads });
   } catch (error) {
@@ -23,7 +23,7 @@ router.patch("/admin/leads/:id/stage", authMiddleware, requireAdmin, async (req,
     if (!allowed.includes(String(stage || "").toLowerCase())) {
       return res.status(400).json({ success: false, message: "Stage inválido" });
     }
-    if (!process.env.NOCODB_LEADS_URL) {
+    if (!process.env.NOCODB_LEADS_TABLE) {
       return res.status(503).json({ success: false, message: "NocoDB leads no configurado" });
     }
     const updated = await db.update("leads", id, { stage: String(stage).toLowerCase() });

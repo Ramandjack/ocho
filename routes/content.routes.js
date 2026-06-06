@@ -1,6 +1,6 @@
 import express from "express";
-import { db }  from "./nocodb.service.js";
-import { authMiddleware, requireAdmin } from "./middleware/auth.js";
+import { db }  from "../services/nocodb.service.js";
+import { authMiddleware, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -16,6 +16,18 @@ function slugify(str) {
     .replace(/\s+/g, "-")
     .replace(/-+/g, "-")
     .slice(0, 80);
+}
+
+// Elimina etiquetas HTML de campos de texto plano.
+// Previene XSS stored si el renderizado cambia en el futuro.
+function stripHtml(str) {
+  return String(str || "").replace(/<[^>]*>/g, "").trim();
+}
+
+// Solo permite URLs http/https. Bloquea javascript:, data:, vbscript: y similares.
+function sanitizeCoverUrl(url) {
+  const s = String(url || "").trim();
+  return /^https?:\/\//i.test(s) ? s : "";
 }
 
 async function findContentItem(id) {
@@ -87,15 +99,15 @@ router.post("/admin/content", authMiddleware, requireAdmin, async (req, res) => 
 
     const now  = new Date().toISOString();
     const item = await db.insert("content", {
-      title:       String(title).trim(),
+      title:       stripHtml(title),
       type,
       status:      "draft",
-      excerpt:     String(excerpt).trim(),
-      body:        String(body).trim(),
-      tags:        String(tags).trim(),
-      cover_url:   String(cover_url).trim(),
+      excerpt:     stripHtml(excerpt),
+      body:        stripHtml(body),
+      tags:        stripHtml(tags),
+      cover_url:   sanitizeCoverUrl(cover_url),
       slug:        slugify(title),
-      author_name: String(author_name).trim() || "Admin",
+      author_name: stripHtml(author_name) || "Admin",
       published_at: null,
       updated_at:  now,
     });
@@ -120,10 +132,14 @@ router.patch("/admin/content/:id", authMiddleware, requireAdmin, async (req, res
     console.log("NOCODB FILTER:", `(Id,eq,${Number(id)})`, "→ target:", target?.nocodb_id ?? target?.id ?? null);
     if (!target) return res.status(404).json({ success: false, message: "Contenido no encontrado" });
 
-    const allowed = ["title", "excerpt", "body", "tags", "cover_url", "author_name", "slug"];
-    const fields  = {};
+    const TEXT_FIELDS = new Set(["title", "excerpt", "body", "tags", "author_name", "slug"]);
+    const allowed     = [...TEXT_FIELDS, "cover_url"];
+    const fields      = {};
     for (const key of allowed) {
-      if (req.body[key] !== undefined) fields[key] = String(req.body[key] ?? "");
+      if (req.body[key] === undefined) continue;
+      fields[key] = key === "cover_url"
+        ? sanitizeCoverUrl(req.body[key])
+        : stripHtml(req.body[key]);
     }
     if (req.body.type !== undefined) {
       const t = Array.isArray(req.body.type) ? req.body.type[0] : req.body.type;

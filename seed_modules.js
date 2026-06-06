@@ -6,11 +6,14 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const TOKEN = process.env.NOCODB_TOKEN;
-const URL   = process.env.NOCODB_MODULES_URL;
+const TOKEN      = process.env.NOCODB_TOKEN;
+const NOCODB_BASE = process.env.NOCODB_BASE;
+const TABLE_ID   = process.env.NOCODB_MODULES_TABLE;
+const NOCODB_HOST = (process.env.NOCODB_HOST || "https://app.nocodb.com/api/v3/data").replace(/\/$/, "");
+const URL        = NOCODB_BASE && TABLE_ID ? `${NOCODB_HOST}/${NOCODB_BASE}/${TABLE_ID}/records` : null;
 
 if (!TOKEN || !URL) {
-  console.error("Faltan NOCODB_TOKEN o NOCODB_MODULES_URL en .env");
+  console.error("Faltan NOCODB_TOKEN, NOCODB_BASE o NOCODB_MODULES_TABLE en .env");
   process.exit(1);
 }
 

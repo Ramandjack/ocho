@@ -1,12 +1,13 @@
 import express from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
-import { db } from "../nocodb.service.js";
+import { db } from "../services/nocodb.service.js";
 import { authMiddleware } from "../middleware/auth.js";
 import { loginLimiter, registerLimiter } from "../middleware/rateLimits.js";
 import {
   normalizeEmail, normalizeRole, sanitizeUser,
   createToken, setAuthCookie, clearAuthCookie, inferUserSegment,
+  generateCsrfToken, setCsrfCookie, clearCsrfCookie,
 } from "../utils/helpers.js";
 import {
   getAllUsers, createUserRecord, updateUserFieldInNoco,
@@ -105,6 +106,7 @@ router.post("/login", loginLimiter, async (req, res) => {
 
     const token = createToken(user);
     setAuthCookie(res, token);
+    setCsrfCookie(res, generateCsrfToken());
 
     updateUserFieldInNoco(user.uuid, { last_login_at: new Date().toISOString() }).catch(() => {});
 
@@ -127,6 +129,11 @@ router.get("/me", authMiddleware, async (req, res) => {
       if (st === "pending")  return res.status(403).json({ success: false, message: "Tu cuenta está pendiente de aprobación por un administrador." });
       if (st === "rejected") return res.status(403).json({ success: false, message: "Tu solicitud de acceso fue rechazada. Contactá al administrador." });
       if (st === "banned")   return res.status(403).json({ success: false, message: "Tu cuenta ha sido suspendida. Contactá al administrador." });
+    }
+
+    // Renueva la cookie CSRF si se perdió (ej. el usuario borró cookies no-HttpOnly)
+    if (!req.cookies?.ocho_csrf) {
+      setCsrfCookie(res, generateCsrfToken());
     }
 
     return res.json({
@@ -160,6 +167,7 @@ router.get("/me", authMiddleware, async (req, res) => {
 
 router.post("/logout", (_req, res) => {
   clearAuthCookie(res);
+  clearCsrfCookie(res);
   return res.json({ success: true, message: "Sesión cerrada" });
 });
 

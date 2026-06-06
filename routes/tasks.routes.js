@@ -1,5 +1,5 @@
 import express from "express";
-import { db } from "../nocodb.service.js";
+import { db } from "../services/nocodb.service.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();

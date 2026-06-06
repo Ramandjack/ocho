@@ -7,21 +7,24 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const TOKEN = process.env.NOCODB_TOKEN;
+const TOKEN       = process.env.NOCODB_TOKEN;
+const NOCODB_BASE = process.env.NOCODB_BASE;
+// Permite apuntar a una instancia self-hosted; por defecto usa NocoDB Cloud.
+const NOCODB_HOST = (process.env.NOCODB_HOST || "https://app.nocodb.com/api/v3/data").replace(/\/$/, "");
 
-const TABLES = {
-  users:        process.env.NOCODB_USERS_URL,
-  leads:        process.env.NOCODB_LEADS_URL,
-  projects:     process.env.NOCODB_PROJECTS_URL,
-  user_projects:process.env.NOCODB_USER_PROJECTS_URL,
-  tasks:        process.env.NOCODB_TASKS_URL,
-  notifications:process.env.NOCODB_NOTIFICATIONS_URL,
-  modules:      process.env.NOCODB_MODULES_URL,
-  user_modules: process.env.NOCODB_USER_MODULES_URL,
-  activity_log:     process.env.NOCODB_ACTIVITY_LOG_URL,
-  resources:        process.env.NOCODB_RESOURCES_URL,
-  content:          process.env.NOCODB_CONTENT_URL,
-  project_messages: process.env.NOCODB_PROJECT_MESSAGES_URL,
+const TABLE_IDS = {
+  users:            process.env.NOCODB_USERS_TABLE,
+  leads:            process.env.NOCODB_LEADS_TABLE,
+  projects:         process.env.NOCODB_PROJECTS_TABLE,
+  user_projects:    process.env.NOCODB_USER_PROJECTS_TABLE,
+  tasks:            process.env.NOCODB_TASKS_TABLE,
+  notifications:    process.env.NOCODB_NOTIFICATIONS_TABLE,
+  modules:          process.env.NOCODB_MODULES_TABLE,
+  user_modules:     process.env.NOCODB_USER_MODULES_TABLE,
+  activity_log:     process.env.NOCODB_ACTIVITY_LOG_TABLE,
+  resources:        process.env.NOCODB_RESOURCES_TABLE,
+  content:          process.env.NOCODB_CONTENT_TABLE,
+  project_messages: process.env.NOCODB_PROJECT_MESSAGES_TABLE,
 };
 
 /* ===========================
@@ -71,9 +74,10 @@ async function ncFetch(url, options = {}, _retry = 0) {
 =========================== */
 
 function tableUrl(table) {
-  const url = TABLES[table];
-  if (!url) throw new Error(`Tabla desconocida: ${table}`);
-  return url.replace(/\/$/, "");
+  const id = TABLE_IDS[table];
+  if (!id) throw new Error(`Tabla desconocida o sin configurar: ${table}`);
+  if (!NOCODB_BASE) throw new Error("NOCODB_BASE no configurado");
+  return `${NOCODB_HOST}/${NOCODB_BASE}/${id}/records`;
 }
 
 function flatten(record) {
@@ -289,7 +293,7 @@ async function sendNotificationToMany(userUuids, type, title, message, link = ""
 // Precalienta en lotes de 2 para no saturar el rate limit de NocoDB
 async function warmCache() {
   const tables = ["users", "projects", "tasks", "content", "modules", "user_modules", "leads", "activity_log"]
-    .filter(t => TABLES[t]);
+    .filter(t => TABLE_IDS[t]);
 
   for (let i = 0; i < tables.length; i += 2) {
     await Promise.allSettled(tables.slice(i, i + 2).map(t => getAll(t).catch(() => {})));
@@ -310,5 +314,5 @@ export const db = {
   sendNotificationToMany,
   clearTableCache,
   warmCache,
-  TABLES,
+  TABLE_IDS,
 };

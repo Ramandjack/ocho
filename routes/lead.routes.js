@@ -1,5 +1,5 @@
 import express from "express";
-import { db } from "../nocodb.service.js";
+import { db } from "../services/nocodb.service.js";
 import { leadLimiter } from "../middleware/rateLimits.js";
 import { normalizeEmail, inferLeadSegment } from "../utils/helpers.js";
 
@@ -39,7 +39,7 @@ router.post("/lead", leadLimiter, async (req, res) => {
     if (N8N_LEAD_WEBHOOK) {
       const response = await fetch(N8N_LEAD_WEBHOOK, {
         method:  "POST",
-        headers: { "Content-Type": "application/json", ...(N8N_API_KEY ? { "x-api-key": N8N_API_KEY } : {}) },
+        headers: { "Content-Type": "application/json", ...(N8N_API_KEY ? { "X-OCHO-Api-Key": N8N_API_KEY } : {}) },
         body:    JSON.stringify(leadPayload),
       });
       const ct  = response.headers.get("content-type") || "";
@@ -47,7 +47,7 @@ router.post("/lead", leadLimiter, async (req, res) => {
       if (!response.ok) throw new Error(typeof n8nResult === "object" ? n8nResult.message || JSON.stringify(n8nResult) : String(n8nResult));
     }
 
-    if (process.env.NOCODB_LEADS_URL) {
+    if (process.env.NOCODB_LEADS_TABLE) {
       nocodbResult = await db.insert("leads", leadPayload);
     }
 

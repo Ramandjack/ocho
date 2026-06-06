@@ -24,40 +24,43 @@ services:
       - key: NOCODB_TOKEN
         sync: false
 
-      - key: NOCODB_USERS_URL
+      - key: NOCODB_BASE
         sync: false
 
-      - key: NOCODB_LEADS_URL
+      - key: NOCODB_USERS_TABLE
         sync: false
 
-      - key: NOCODB_PROJECTS_URL
+      - key: NOCODB_LEADS_TABLE
         sync: false
 
-      - key: NOCODB_USER_PROJECTS_URL
+      - key: NOCODB_PROJECTS_TABLE
         sync: false
 
-      - key: NOCODB_TASKS_URL
+      - key: NOCODB_USER_PROJECTS_TABLE
         sync: false
 
-      - key: NOCODB_NOTIFICATIONS_URL
+      - key: NOCODB_TASKS_TABLE
         sync: false
 
-      - key: NOCODB_MODULES_URL
+      - key: NOCODB_NOTIFICATIONS_TABLE
         sync: false
 
-      - key: NOCODB_USER_MODULES_URL
+      - key: NOCODB_MODULES_TABLE
         sync: false
 
-      - key: NOCODB_ACTIVITY_LOG_URL
+      - key: NOCODB_USER_MODULES_TABLE
         sync: false
 
-      - key: NOCODB_RESOURCES_URL
+      - key: NOCODB_ACTIVITY_LOG_TABLE
         sync: false
 
-      - key: NOCODB_CONTENT_URL
+      - key: NOCODB_RESOURCES_TABLE
         sync: false
 
-      - key: NOCODB_PROJECT_MESSAGES_URL
+      - key: NOCODB_CONTENT_TABLE
+        sync: false
+
+      - key: NOCODB_PROJECT_MESSAGES_TABLE
         sync: false
 
       # ── IA (opcional) ─────────────────────────────────────────

@@ -27,6 +27,7 @@ export default function DashboardView() {
   const [content, setContent]       = useState([]);
   const [loading, setLoading]       = useState(true);
   const [fetchErr, setFetchErr]     = useState(null);
+  const [ping, setPing]             = useState(null);
 
   useEffect(() => {
     apiFetch("/api/user/dashboard")
@@ -43,6 +44,8 @@ export default function DashboardView() {
         show(err.message || "Error cargando el dashboard", "error");
       })
       .finally(() => setLoading(false));
+
+    apiFetch("/api/user/ping").then(setPing).catch(() => {});
   }, []);
 
   const firstName = user?.first_name || user?.full_name?.split(" ")[0] || "Usuario";
@@ -232,6 +235,15 @@ export default function DashboardView() {
             })}
           </div>
         </section>
+      )}
+
+      {ping && (
+        <details style={{ marginTop: "2rem", fontSize: "0.75rem", opacity: 0.4 }}>
+          <summary style={{ cursor: "pointer", userSelect: "none" }}>Diagnóstico de conexión</summary>
+          <pre style={{ marginTop: "0.5rem", lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-all" }}>
+            {JSON.stringify(ping, null, 2)}
+          </pre>
+        </details>
       )}
 
     </div>

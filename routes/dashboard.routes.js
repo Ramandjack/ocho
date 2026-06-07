@@ -54,6 +54,30 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
 });
 
 /* ===========================
+   USER PING / DIAGNÓSTICO
+   Retorna info del usuario autenticado + conteos raw de tablas vinculadas.
+   Útil para debuggear si el panel cliente no muestra datos.
+=========================== */
+
+router.get("/user/ping", authMiddleware, async (req, res) => {
+  const uuid = req.user.sub;
+  const [upR, tR, nR] = await Promise.allSettled([
+    db.getWhere("user_projects", `(user_uuid,eq,${uuid})`),
+    db.getWhere("tasks",         `(assigned_to,eq,${uuid})`),
+    db.getWhere("notifications", `(user_uuid,eq,${uuid})`),
+  ]);
+  return res.json({
+    success: true,
+    user: { uuid, email: req.user.email, role: req.user.role },
+    counts: {
+      user_projects:  upR.status === "fulfilled" ? upR.value.length  : `ERROR: ${upR.reason?.message}`,
+      tasks_assigned: tR.status  === "fulfilled" ? tR.value.length   : `ERROR: ${tR.reason?.message}`,
+      notifications:  nR.status  === "fulfilled" ? nR.value.length   : `ERROR: ${nR.reason?.message}`,
+    },
+  });
+});
+
+/* ===========================
    ADMIN BOOTSTRAP
    Un solo request carga todos los datos del admin panel.
    El servidor resuelve los 7 queries en paralelo usando el cache.

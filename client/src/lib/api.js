@@ -1,7 +1,7 @@
 function getCsrfToken() {
-  if (typeof document === "undefined") return null;
+  if (typeof document === "undefined") return "";
   const match = document.cookie.match(/(?:^|;\s*)ocho_csrf=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
+  return match ? decodeURIComponent(match[1]) : "";
 }
 
 /**
@@ -23,11 +23,12 @@ export async function apiFetch(path, options = {}) {
   const method = (options.method || "GET").toUpperCase();
   const isMutating = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
 
+  const csrfToken = isMutating ? getCsrfToken() : "";
   const response = await fetch(`${base}${path}`, {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
-      ...(isMutating ? { "X-CSRF-Token": getCsrfToken() } : {}),
+      ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
       ...(options.headers || {}),
     },
     ...options,

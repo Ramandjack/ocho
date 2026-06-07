@@ -1,8 +1,8 @@
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
-// Usa la IP real del cliente. Depende de app.set('trust proxy', 1) en server.js
-// para que req.ip refleje X-Forwarded-For detrás del proxy de Render.
-const byIp = (req) => req.ip;
+// Usa ipKeyGenerator para normalizar IPv4/IPv6 y evitar ERR_ERL_KEY_GEN_IPV6.
+// Depende de app.set('trust proxy', 1) en server.js para X-Forwarded-For en Render.
+const byIp = (req) => ipKeyGenerator(req);
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

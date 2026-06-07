@@ -1,8 +1,19 @@
 import jwt from "jsonwebtoken";
 import { db } from "../services/nocodb.service.js";
-import { normalizeRole } from "../utils/helpers.js";
+import { normalizeRole, clearAuthCookie, clearCsrfCookie } from "../utils/helpers.js";
 
 const JWT_SECRET = process.env.JWT_SECRET || "ocho-dev-secret-change-this";
+
+function hasValidSession(req) {
+  const token = req.cookies?.ocho_token;
+  if (!token) return false;
+  try {
+    jwt.verify(token, JWT_SECRET);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 if (process.env.NODE_ENV === "production" && !process.env.JWT_SECRET) {
   console.error("FATAL: JWT_SECRET no está definido en producción.");
@@ -59,16 +70,21 @@ export async function authMiddleware(req, res, next) {
     next();
   } catch (e) {
     console.warn(`[auth] Token inválido — ${req.method} ${req.path}: ${e.message}`);
+    // Limpia las cookies inválidas para que el browser no las siga enviando
+    clearAuthCookie(res);
+    clearCsrfCookie(res);
     return res.status(401).json({ success: false, message: "Sesión inválida o expirada" });
   }
 }
 
 const MUTATING_METHODS = new Set(["POST", "PATCH", "PUT", "DELETE"]);
+// Login y register son rutas públicas: no hay sesión previa que proteger de CSRF
+const CSRF_EXEMPT_PATHS = new Set(["/login", "/register"]);
 
 export function csrfCheck(req, res, next) {
   if (!MUTATING_METHODS.has(req.method)) return next();
-  // Rutas públicas (sin cookie de sesión) quedan exentas
-  if (!req.cookies?.ocho_token) return next();
+  if (CSRF_EXEMPT_PATHS.has(req.path)) return next();
+  if (!hasValidSession(req)) return next();
 
   const csrfCookie = req.cookies?.ocho_csrf;
   const csrfHeader = req.headers["x-csrf-token"];

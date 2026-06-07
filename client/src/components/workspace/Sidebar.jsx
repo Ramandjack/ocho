@@ -1,10 +1,10 @@
 import { NavLink, Link } from "react-router-dom";
-import { useNotifications } from "../../hooks/useNotifications.js";
 
 const NAV_PRIMARY = [
-  { to: "/panel",          label: "Inicio",    end: true },
-  { to: "/panel/projects", label: "Proyectos" },
-  { to: "/panel/tasks",    label: "Tareas" },
+  { to: "/panel",           label: "Inicio",     end: true },
+  { to: "/panel/projects",  label: "Proyectos" },
+  { to: "/panel/tasks",     label: "Tareas" },
+  { to: "/panel/workspace", label: "Workspace" },
 ];
 
 const NAV_SECONDARY = [
@@ -13,10 +13,9 @@ const NAV_SECONDARY = [
   { to: "/panel/ai",        label: "IA" },
 ];
 
-export default function Sidebar({ user }) {
+export default function Sidebar({ user, unread = 0 }) {
   const name = user?.full_name || user?.first_name || "Usuario";
   const role = String(user?.role || "").toLowerCase();
-  const { unread } = useNotifications(60_000);
 
   return (
     <aside className="sidebar">

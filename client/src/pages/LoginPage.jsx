@@ -9,6 +9,7 @@ export default function LoginPage() {
   const { setUser } = useAuth();
   const [status, setStatus] = useState({ text: "", type: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -88,6 +89,21 @@ export default function LoginPage() {
         <p className="auth-switch">
           ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>
         </p>
+
+        {showForgot ? (
+          <p className="auth-forgot-msg">
+            Para recuperar tu contraseña, contactá al administrador del sistema.{" "}
+            <button type="button" className="auth-link-btn" onClick={() => setShowForgot(false)}>
+              Cerrar
+            </button>
+          </p>
+        ) : (
+          <p className="auth-switch">
+            <button type="button" className="auth-link-btn" onClick={() => setShowForgot(true)}>
+              ¿Olvidaste tu contraseña?
+            </button>
+          </p>
+        )}
       </AuthLayout>
     </div>
   );

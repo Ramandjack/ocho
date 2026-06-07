@@ -524,3 +524,73 @@
   line-height: 1.65;
   margin: 0;
 }
+
+/* ===========================
+   PASSWORD STRENGTH
+=========================== */
+
+.password-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.password-strength-bar {
+  flex: 1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.password-strength-bar::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  transition: width 0.2s ease, background-color 0.2s ease;
+}
+
+.password-strength-bar.weak::after   { width: 33%; background: #ef4444; }
+.password-strength-bar.medium::after { width: 66%; background: #f59e0b; }
+.password-strength-bar.strong::after { width: 100%; background: #22c55e; }
+
+.password-strength-label {
+  font-size: 0.72rem;
+  min-width: 3rem;
+  text-align: right;
+}
+
+.password-strength-label.weak   { color: #ef4444; }
+.password-strength-label.medium { color: #f59e0b; }
+.password-strength-label.strong { color: #22c55e; }
+
+/* ===========================
+   FORGOT PASSWORD
+=========================== */
+
+.auth-forgot-msg {
+  font-size: 0.875rem;
+  color: var(--muted, rgba(255, 255, 255, 0.55));
+  text-align: center;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.auth-link-btn {
+  background: none;
+  border: none;
+  color: var(--muted, rgba(255, 255, 255, 0.55));
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: color 0.15s;
+}
+
+.auth-link-btn:hover { color: var(--text, #fff); }

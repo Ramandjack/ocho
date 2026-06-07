@@ -2,7 +2,7 @@ import { useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
 import { useAdminData } from "../../context/AdminDataContext.jsx";
-import { ToastContainer } from "./adminUtils.jsx";
+import { ToastContainer, ConfirmModal } from "./adminUtils.jsx";
 
 const STATUS_OPTIONS  = ["draft", "active", "completed", "archived"];
 const TYPE_OPTIONS    = ["web", "saas", "ecommerce", "marketplace", "ia"];
@@ -16,6 +16,7 @@ export default function AdminProjects() {
   const { projects, setProjects, users } = useAdminData();
   const [form, setForm]               = useState(null);
   const [assignModal, setAssign]      = useState(null);
+  const [confirmState, setConfirmState] = useState(null);
   const [assignUuid, setAssignUuid]   = useState("");
   const [assignPerm, setAssignPerm]   = useState("viewer");
   const [saving, setSaving]           = useState(false);
@@ -49,7 +50,6 @@ export default function AdminProjects() {
   }
 
   async function deleteProject(id, title) {
-    if (!window.confirm(`¿Eliminar "${title}"?`)) return;
     try {
       await apiFetch(`/api/admin/projects/${id}`, { method: "DELETE" });
       setProjects(prev => prev.filter(p => (p.nocodb_id ?? p.id) !== id));
@@ -145,7 +145,13 @@ export default function AdminProjects() {
                           <button type="button" className="admin-btn" onClick={() => { setAssign({ id, title: p.title }); setAssignUuid(""); setAssignPerm("viewer"); }}>
                             Asignar
                           </button>
-                          <button type="button" className="admin-btn danger" onClick={() => deleteProject(id, p.title)}>
+                          <button type="button" className="admin-btn danger" onClick={() => setConfirmState({
+                            title: `¿Eliminar "${p.title}"?`,
+                            message: "Esta acción no se puede deshacer.",
+                            danger: true,
+                            confirmLabel: "Eliminar",
+                            onConfirm: () => deleteProject(id, p.title),
+                          })}>
                             Eliminar
                           </button>
                         </div>
@@ -188,6 +194,14 @@ export default function AdminProjects() {
       )}
 
       <ToastContainer toasts={toasts} />
+
+      {confirmState && (
+        <ConfirmModal
+          {...confirmState}
+          onCancel={() => setConfirmState(null)}
+          onConfirm={() => { confirmState.onConfirm(); setConfirmState(null); }}
+        />
+      )}
     </>
   );
 }

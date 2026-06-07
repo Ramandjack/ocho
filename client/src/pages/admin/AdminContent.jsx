@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
 import { useAdminData } from "../../context/AdminDataContext.jsx";
-import { ToastContainer, formatDate } from "./adminUtils.jsx";
+import { ToastContainer, ConfirmModal, formatDate } from "./adminUtils.jsx";
 
 const TYPES = [
   { value: "article",    label: "Artículo" },
@@ -33,6 +33,7 @@ export default function AdminContent() {
   const [editTarget, setEditTarget] = useState(null);
   const [form, setForm]           = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [confirmState, setConfirmState] = useState(null);
   const { toasts, show }          = useToast();
 
   useEffect(() => {
@@ -141,7 +142,6 @@ export default function AdminContent() {
   }
 
   async function handleDelete(item) {
-    if (!confirm(`¿Eliminar "${item.title}"?`)) return;
     const id = item.nocodb_id || item.id;
     try {
       const r = await apiFetch(`/api/admin/content/${id}`, { method: "DELETE" });
@@ -176,6 +176,14 @@ export default function AdminContent() {
   return (
     <div className="admin-section">
       <ToastContainer toasts={toasts} />
+
+      {confirmState && (
+        <ConfirmModal
+          {...confirmState}
+          onCancel={() => setConfirmState(null)}
+          onConfirm={() => { confirmState.onConfirm(); setConfirmState(null); }}
+        />
+      )}
 
       <div className="admin-section-header">
         <h2>Gestión de contenidos</h2>
@@ -283,7 +291,13 @@ export default function AdminContent() {
                         {item.status === "archived" && (
                           <button className="admin-btn-sm" onClick={() => handleStatusChange(item, "draft")}>Reabrir</button>
                         )}
-                        <button className="admin-btn-sm danger" onClick={() => handleDelete(item)}>Eliminar</button>
+                        <button className="admin-btn-sm danger" onClick={() => setConfirmState({
+                          title: `¿Eliminar "${item.title}"?`,
+                          message: "Esta acción no se puede deshacer.",
+                          danger: true,
+                          confirmLabel: "Eliminar",
+                          onConfirm: () => handleDelete(item),
+                        })}>Eliminar</button>
                       </div>
                     </td>
                   </tr>

@@ -3,6 +3,19 @@ import { Link, useNavigate } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout.jsx";
 import { apiFetch } from "../lib/api.js";
 
+function getPasswordStrength(pwd) {
+  if (!pwd) return null;
+  let score = 0;
+  if (pwd.length >= 8) score++;
+  if (pwd.length >= 12) score++;
+  if (/[A-Z]/.test(pwd)) score++;
+  if (/[0-9]/.test(pwd)) score++;
+  if (/[^A-Za-z0-9]/.test(pwd)) score++;
+  if (score <= 2) return { level: "weak", label: "Débil" };
+  if (score <= 3) return { level: "medium", label: "Media" };
+  return { level: "strong", label: "Fuerte" };
+}
+
 const INTEREST_OPTIONS = [
   { value: "", label: "Seleccionar" },
   { value: "branding", label: "Branding y posicionamiento" },
@@ -19,6 +32,7 @@ export default function RegisterPage() {
   const [status, setStatus] = useState({ text: "", type: "" });
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [password, setPassword] = useState("");
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -176,7 +190,18 @@ export default function RegisterPage() {
               required
               minLength={8}
               autoComplete="new-password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
             />
+            {password && (() => {
+              const s = getPasswordStrength(password);
+              return (
+                <div className="password-strength">
+                  <div className={`password-strength-bar ${s.level}`} />
+                  <span className={`password-strength-label ${s.level}`}>{s.label}</span>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="consent-group">

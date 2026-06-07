@@ -2,7 +2,7 @@ import { useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
 import { useAdminData } from "../../context/AdminDataContext.jsx";
-import { ToastContainer } from "./adminUtils.jsx";
+import { ToastContainer, ConfirmModal } from "./adminUtils.jsx";
 
 const STATUS_OPTIONS   = ["pending", "in_progress", "done"];
 const PRIORITY_OPTIONS = ["low", "medium", "high"];
@@ -15,6 +15,7 @@ export default function AdminTasks() {
   const { tasks, setTasks, users, projects } = useAdminData();
   const [form, setForm]   = useState(null);
   const [saving, setSaving] = useState(false);
+  const [confirmState, setConfirmState] = useState(null);
   const { toasts, show } = useToast();
 
   const userMap    = Object.fromEntries(users.map(u => [u.uuid, u.full_name || u.email]));
@@ -51,7 +52,6 @@ export default function AdminTasks() {
   }
 
   async function deleteTask(id, title) {
-    if (!window.confirm(`¿Eliminar "${title}"?`)) return;
     try {
       await apiFetch(`/api/admin/tasks/${id}`, { method: "DELETE" });
       setTasks(prev => prev.filter(t => (t.nocodb_id ?? t.id) !== id));
@@ -144,7 +144,13 @@ export default function AdminTasks() {
                           <button type="button" className="admin-btn" onClick={() => setForm({ id, title: t.title, description: t.description || "", status: t.status, priority: t.priority, project_id: String(t.project_id || ""), assigned_to: t.assigned_to || "", due_date: t.due_date || "" })}>
                             Editar
                           </button>
-                          <button type="button" className="admin-btn danger" onClick={() => deleteTask(id, t.title)}>
+                          <button type="button" className="admin-btn danger" onClick={() => setConfirmState({
+                            title: `¿Eliminar "${t.title}"?`,
+                            message: "Esta acción no se puede deshacer.",
+                            danger: true,
+                            confirmLabel: "Eliminar",
+                            onConfirm: () => deleteTask(id, t.title),
+                          })}>
                             Eliminar
                           </button>
                         </div>
@@ -159,6 +165,14 @@ export default function AdminTasks() {
       </section>
 
       <ToastContainer toasts={toasts} />
+
+      {confirmState && (
+        <ConfirmModal
+          {...confirmState}
+          onCancel={() => setConfirmState(null)}
+          onConfirm={() => { confirmState.onConfirm(); setConfirmState(null); }}
+        />
+      )}
     </>
   );
 }

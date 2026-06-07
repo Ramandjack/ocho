@@ -3034,6 +3034,18 @@
     flex-wrap: nowrap;
   }
 
+  /* Content type tabs: scroll horizontally */
+  .content-view-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+    flex-wrap: nowrap;
+  }
+
+  .content-view-tab {
+    flex-shrink: 0;
+  }
+
   /* Toast position */
   .ws-toast-container {
     bottom: 1rem;

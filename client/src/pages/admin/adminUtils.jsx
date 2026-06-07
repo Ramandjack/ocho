@@ -1,3 +1,5 @@
+import { useEffect } from "react";
+
 export function normalizeRole(role) {
   if (Array.isArray(role)) return String(role[0] || "").trim().toLowerCase();
   return String(role || "").trim().toLowerCase();
@@ -63,6 +65,32 @@ export function ModalRow({ label, value }) {
     <div className="modal-row">
       <span className="modal-label">{label}</span>
       <span>{String(value ?? "—")}</span>
+    </div>
+  );
+}
+
+export function ConfirmModal({ title, message, confirmLabel = "Confirmar", danger = false, onConfirm, onCancel }) {
+  useEffect(() => {
+    function onKey(e) { if (e.key === "Escape") onCancel(); }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onCancel]);
+
+  return (
+    <div className="admin-modal-overlay" role="dialog" aria-modal="true"
+      onClick={e => e.target === e.currentTarget && onCancel()}>
+      <div className="admin-card admin-modal-card modal-inner" style={{ maxWidth: 420 }}>
+        <h3 style={{ marginBottom: message ? 8 : 24 }}>{title}</h3>
+        {message && (
+          <p className="admin-muted" style={{ fontSize: "0.9rem", marginBottom: 24, lineHeight: 1.5 }}>{message}</p>
+        )}
+        <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+          <button type="button" className="admin-btn" onClick={onCancel}>Cancelar</button>
+          <button type="button" className={`admin-btn${danger ? " danger" : " primary"}`} onClick={onConfirm} autoFocus>
+            {confirmLabel}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

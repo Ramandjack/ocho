@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext.jsx";
 import Sidebar from "../../components/workspace/Sidebar.jsx";
 import { useToast } from "../../hooks/useToast.js";
+import { useNotifications } from "../../hooks/useNotifications.js";
 import "./workspace.css";
 
 function WorkspaceToast({ toasts }) {
@@ -22,7 +23,24 @@ export default function WorkspaceLayout() {
   const { user } = useAuth();
   const location = useLocation();
   const { toasts, show } = useToast();
+  const { notifications, unread } = useNotifications();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const seenIdsRef = useRef(null);
+
+  useEffect(() => {
+    if (!notifications.length) return;
+    if (seenIdsRef.current === null) {
+      seenIdsRef.current = new Set(notifications.map(n => n.nocodb_id ?? n.id));
+      return;
+    }
+    const newUnread = notifications.filter(n => {
+      const id = n.nocodb_id ?? n.id;
+      return !n.read && !seenIdsRef.current.has(id);
+    });
+    newUnread.slice(0, 2).forEach(n => show(n.title ?? "Nueva notificación"));
+    notifications.forEach(n => seenIdsRef.current.add(n.nocodb_id ?? n.id));
+  }, [notifications]);
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
@@ -48,7 +66,7 @@ export default function WorkspaceLayout() {
         />
       )}
 
-      <Sidebar user={user} />
+      <Sidebar user={user} unread={unread} />
       <main className="workspace-main">
         <Outlet context={{ user, show }} />
       </main>

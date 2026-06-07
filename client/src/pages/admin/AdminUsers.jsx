@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 import { useToast } from "../../hooks/useToast.js";
 import { useAdminData } from "../../context/AdminDataContext.jsx";
-import { normalizeRole, getInitials, formatDate, exportCSV, ToastContainer, ModalRow } from "./adminUtils.jsx";
+import { normalizeRole, getInitials, formatDate, exportCSV, ToastContainer, ModalRow, ConfirmModal } from "./adminUtils.jsx";
 
 export default function AdminUsers() {
   const { users, setUsers } = useAdminData();
@@ -11,6 +11,7 @@ export default function AdminUsers() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [modal, setModal]               = useState(null);
   const [view, setView]                 = useState("all"); // "all" | "pending"
+  const [confirmState, setConfirmState] = useState(null);
   const { toasts, show } = useToast();
 
   const pending = useMemo(() => users.filter(u => (u.status || "active") === "pending"), [users]);
@@ -69,8 +70,6 @@ export default function AdminUsers() {
   }
 
   async function deleteUser(uuid, name) {
-    if (!window.confirm(`¿Eliminar permanentemente a "${name}"?\nEsta acción NO se puede deshacer.`)) return;
-    if (!window.confirm(`Confirmación final: ¿eliminar a "${name}"?`)) return;
     try {
       await apiFetch(`/api/admin/users/${uuid}`, { method: "DELETE" });
       setUsers(prev => prev.filter(u => u.uuid !== uuid));
@@ -255,16 +254,30 @@ export default function AdminUsers() {
           changeStatus={changeStatus}
           approveUser={approveUser}
           rejectUser={rejectUser}
-          deleteUser={deleteUser}
+          onDeleteConfirm={(uuid, name) => setConfirmState({
+            title: `¿Eliminar a "${name}"?`,
+            message: "Esta acción es permanente e irreversible. El usuario perderá todo acceso.",
+            danger: true,
+            confirmLabel: "Eliminar usuario",
+            onConfirm: () => deleteUser(uuid, name),
+          })}
         />
       )}
 
       <ToastContainer toasts={toasts} />
+
+      {confirmState && (
+        <ConfirmModal
+          {...confirmState}
+          onCancel={() => setConfirmState(null)}
+          onConfirm={() => { confirmState.onConfirm(); setConfirmState(null); }}
+        />
+      )}
     </>
   );
 }
 
-function UserModal({ user, onClose, changeRole, changeStatus, approveUser, rejectUser, deleteUser }) {
+function UserModal({ user, onClose, changeRole, changeStatus, approveUser, rejectUser, onDeleteConfirm }) {
   const name   = user.full_name || `${user.first_name || ""} ${user.last_name || ""}`.trim() || "—";
   const role   = normalizeRole(user.role);
   const status = user.status || "active";
@@ -298,7 +311,7 @@ function UserModal({ user, onClose, changeRole, changeStatus, approveUser, rejec
             <button type="button" className="admin-btn" onClick={() => changeRole(user.uuid, role === "admin" ? "member" : "admin")}>
               {role === "admin" ? "↓ Member" : "↑ Admin"}
             </button>
-            <button type="button" className="admin-btn danger" onClick={() => deleteUser(user.uuid, name)}>Eliminar</button>
+            <button type="button" className="admin-btn danger" onClick={() => onDeleteConfirm(user.uuid, name)}>Eliminar</button>
           </div>
         </div>
         <div className="modal-grid">

@@ -222,13 +222,20 @@ export default function AdminContent() {
       </div>
 
       <div className="content-filters">
-        <div className="content-type-tabs">
-          <button className={`content-tab${filter === "all" ? " active" : ""}`} onClick={() => setFilter("all")}>
+        <div className="content-type-tabs" role="tablist" aria-label="Filtrar por tipo">
+          <button
+            role="tab"
+            aria-selected={filter === "all"}
+            className={`content-tab${filter === "all" ? " active" : ""}`}
+            onClick={() => setFilter("all")}
+          >
             Todos ({content.length})
           </button>
           {TYPES.map(t => (
             <button
               key={t.value}
+              role="tab"
+              aria-selected={filter === t.value}
               className={`content-tab${filter === t.value ? " active" : ""}`}
               onClick={() => setFilter(t.value)}
             >

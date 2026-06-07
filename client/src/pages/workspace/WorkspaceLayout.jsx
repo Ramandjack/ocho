@@ -46,6 +46,7 @@ export default function WorkspaceLayout() {
 
   return (
     <div className={`workspace${sidebarOpen ? " sidebar-open" : ""}`}>
+      <a href="#workspace-main" className="skip-link">Saltar al contenido</a>
       <div className="workspace-mobile-bar">
         <button
           className="sidebar-toggle"
@@ -67,7 +68,7 @@ export default function WorkspaceLayout() {
       )}
 
       <Sidebar user={user} unread={unread} />
-      <main className="workspace-main">
+      <main id="workspace-main" className="workspace-main">
         <Outlet context={{ user, show }} />
       </main>
 

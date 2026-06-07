@@ -210,10 +210,12 @@ export default function ContentView() {
 
       {/* Filtros */}
       <div className="content-view-filters">
-        <div className="content-view-tabs">
+        <div className="content-view-tabs" role="tablist" aria-label="Filtrar por tipo">
           {TYPES.map(t => (
             <button
               key={t.value}
+              role="tab"
+              aria-selected={filter === t.value}
               className={`content-view-tab${filter === t.value ? " active" : ""}`}
               onClick={() => setFilter(t.value)}
             >

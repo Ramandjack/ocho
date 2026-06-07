@@ -8,6 +8,12 @@ const STATUS_LABEL = {
   done:        "completado",
 };
 
+const STATUS_ICON = {
+  pending:     "○",
+  in_progress: "◑",
+  done:        "●",
+};
+
 const NEXT_STATUS = {
   pending:     "in_progress",
   in_progress: "done",
@@ -283,8 +289,10 @@ export default function TasksView() {
                   className={`task-status-pill ${task.status ?? "pending"}`}
                   onClick={() => cycleStatus(task)}
                   title="Cambiar estado"
+                  aria-label={`Estado: ${STATUS_LABEL[task.status] ?? task.status}. Clic para cambiar`}
                 >
-                  {STATUS_LABEL[task.status] ?? task.status}
+                  <span aria-hidden="true">{STATUS_ICON[task.status] ?? "○"}</span>
+                  {" "}{STATUS_LABEL[task.status] ?? task.status}
                 </button>
 
                 <div className="task-item-body">

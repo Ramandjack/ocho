@@ -1,4 +1,5 @@
-import { NavLink, Link } from "react-router-dom";
+import { useState } from "react";
+import { NavLink, Link, useNavigate } from "react-router-dom";
 
 const NAV_PRIMARY = [
   { to: "/panel",           label: "Inicio",     end: true },
@@ -16,6 +17,8 @@ const NAV_SECONDARY = [
 export default function Sidebar({ user, unread = 0 }) {
   const name = user?.full_name || user?.first_name || "Usuario";
   const role = String(user?.role || "").toLowerCase();
+  const navigate = useNavigate();
+  const [confirmLogout, setConfirmLogout] = useState(false);
 
   return (
     <aside className="sidebar">
@@ -69,9 +72,36 @@ export default function Sidebar({ user, unread = 0 }) {
             Consola admin
           </Link>
         )}
-        <Link to="/logout" className="sidebar-link dim">
-          Salir
-        </Link>
+
+        {confirmLogout ? (
+          <div className="sidebar-logout-confirm">
+            <span className="sidebar-logout-question">¿Cerrar sesión?</span>
+            <div className="sidebar-logout-actions">
+              <button
+                type="button"
+                className="sidebar-logout-yes"
+                onClick={() => navigate("/logout")}
+              >
+                Sí, salir
+              </button>
+              <button
+                type="button"
+                className="sidebar-logout-no"
+                onClick={() => setConfirmLogout(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className="sidebar-link dim"
+            onClick={() => setConfirmLogout(true)}
+          >
+            Salir
+          </button>
+        )}
       </div>
     </aside>
   );

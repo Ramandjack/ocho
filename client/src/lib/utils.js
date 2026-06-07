@@ -19,3 +19,14 @@ export function formatDate(dateStr) {
     return String(dateStr);
   }
 }
+
+export function smartDate(dateStr) {
+  if (!dateStr) return "—";
+  const days = (Date.now() - new Date(dateStr).getTime()) / 86_400_000;
+  if (days < 7) return timeAgo(dateStr);
+  return new Date(dateStr).toLocaleDateString("es-AR", {
+    day: "numeric",
+    month: "short",
+    year: days > 365 ? "numeric" : undefined,
+  });
+}

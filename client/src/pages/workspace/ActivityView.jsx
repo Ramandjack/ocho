@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
-import { timeAgo } from "../../lib/utils.js";
+import { smartDate } from "../../lib/utils.js";
 
 const TYPE_DOT = {
   project: "P",
@@ -126,7 +126,7 @@ export default function ActivityView() {
                 </div>
 
                 <span className="activity-time">
-                  {timeAgo(item.CreatedAt ?? item.created_at)}
+                  {smartDate(item.CreatedAt ?? item.created_at)}
                 </span>
               </li>
             );

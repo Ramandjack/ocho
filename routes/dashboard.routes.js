@@ -46,6 +46,8 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
 =========================== */
 
 router.get("/admin/bootstrap", authMiddleware, requireAdmin, async (req, res) => {
+  const tableNames = ["users", "leads", "projects", "tasks", "modules", "content", "activity_log"];
+
   const [usersR, leadsR, projectsR, tasksR, modulesR, contentR, activityR] =
     await Promise.allSettled([
       db.getAll("users"),
@@ -56,6 +58,19 @@ router.get("/admin/bootstrap", authMiddleware, requireAdmin, async (req, res) =>
       db.getAll("content"),
       db.getAll("activity_log"),
     ]);
+
+  const results = [usersR, leadsR, projectsR, tasksR, modulesR, contentR, activityR];
+  const errors  = {};
+  results.forEach((r, i) => {
+    if (r.status === "rejected") {
+      errors[tableNames[i]] = r.reason?.message || "Error desconocido";
+      console.error(`[bootstrap] Error en tabla "${tableNames[i]}": ${r.reason?.message}`);
+    }
+  });
+
+  if (Object.keys(errors).length) {
+    console.error("[bootstrap] Resumen de errores NocoDB:", errors);
+  }
 
   const pick = r => (r.status === "fulfilled" ? r.value : []);
 
@@ -68,6 +83,7 @@ router.get("/admin/bootstrap", authMiddleware, requireAdmin, async (req, res) =>
     modules:  pick(modulesR),
     content:  pick(contentR),
     activity: pick(activityR),
+    _errors:  Object.keys(errors).length ? errors : undefined,
   });
 });
 

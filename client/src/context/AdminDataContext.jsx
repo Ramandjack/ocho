@@ -3,7 +3,6 @@ import { apiFetch } from "../lib/api.js";
 
 const Ctx = createContext(null);
 
-// Individual endpoints — usados sólo para refresh parcial tras mutaciones
 const PATHS = {
   users:    "/api/admin/users",
   leads:    "/api/admin/leads",
@@ -27,22 +26,23 @@ const EXTRACT = {
 const ALL_KEYS = Object.keys(PATHS);
 
 export function AdminDataProvider({ children }) {
-  const [users,    setUsers]    = useState([]);
-  const [leads,    setLeads]    = useState([]);
-  const [projects, setProjects] = useState([]);
-  const [tasks,    setTasks]    = useState([]);
-  const [modules,  setModules]  = useState([]);
-  const [content,  setContent]  = useState([]);
-  const [activity, setActivity] = useState([]);
-  const [ready,    setReady]    = useState(false);
+  const [users,     setUsers]     = useState([]);
+  const [leads,     setLeads]     = useState([]);
+  const [projects,  setProjects]  = useState([]);
+  const [tasks,     setTasks]     = useState([]);
+  const [modules,   setModules]   = useState([]);
+  const [content,   setContent]   = useState([]);
+  const [activity,  setActivity]  = useState([]);
+  const [ready,     setReady]     = useState(false);
+  const [loadError, setLoadError] = useState(null);
 
   const setterMap = {
     users: setUsers, leads: setLeads, projects: setProjects,
     tasks: setTasks, modules: setModules, content: setContent, activity: setActivity,
   };
 
-  // Carga todo en un solo request — elimina rate limiting de NocoDB
   const fetchBootstrap = useCallback(async () => {
+    setLoadError(null);
     const r = await apiFetch("/api/admin/bootstrap");
     setUsers(r.users    ?? []);
     setLeads(r.leads    ?? []);
@@ -51,9 +51,12 @@ export function AdminDataProvider({ children }) {
     setModules(r.modules  ?? []);
     setContent(r.content  ?? []);
     setActivity(r.activity ?? []);
+    if (r._errors) {
+      const names = Object.keys(r._errors).join(", ");
+      setLoadError(`Datos parciales — error en: ${names}. Revisá la configuración de NocoDB.`);
+    }
   }, []);
 
-  // Refresh parcial de keys específicas (post-mutación)
   const fetchKeys = useCallback(async (keys) => {
     const targets = Array.isArray(keys) ? keys : [keys];
     const results = await Promise.allSettled(
@@ -66,14 +69,14 @@ export function AdminDataProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    fetchBootstrap().finally(() => setReady(true));
-    // Re-sincroniza completo cada 2 minutos (TTL del cache del servidor)
+    fetchBootstrap()
+      .catch(err => setLoadError(err.message || "Error al conectar con el servidor"))
+      .finally(() => setReady(true));
     const id = setInterval(fetchBootstrap, 120_000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // refresh(key | key[] | undefined) — si no se pasan keys, recarga todo
   const refresh = useCallback((keys) => {
     if (!keys || (Array.isArray(keys) && keys.length === ALL_KEYS.length)) {
       return fetchBootstrap();
@@ -90,7 +93,7 @@ export function AdminDataProvider({ children }) {
       modules, setModules,
       content, setContent,
       activity, setActivity,
-      ready, refresh,
+      ready, loadError, refresh,
     }}>
       {children}
     </Ctx.Provider>

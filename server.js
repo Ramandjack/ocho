@@ -126,7 +126,20 @@ app.get("/admin.html",    (_req, res) => res.redirect(302, "/app/admin"));
 ========================= */
 
 app.get("/api/health", (_req, res) => {
-  res.json({ success: true, status: "ok", environment: NODE_ENV });
+  const tableStatus = Object.fromEntries(
+    Object.entries(db.TABLE_IDS).map(([k, v]) => [k, !!v])
+  );
+  res.json({
+    success:     true,
+    status:      "ok",
+    environment: NODE_ENV,
+    nocodb: {
+      token:    !!process.env.NOCODB_TOKEN,
+      base:     !!process.env.NOCODB_BASE,
+      host:     process.env.NOCODB_HOST || "https://app.nocodb.com/api/v3/data (default)",
+      tables:   tableStatus,
+    },
+  });
 });
 
 /* =========================

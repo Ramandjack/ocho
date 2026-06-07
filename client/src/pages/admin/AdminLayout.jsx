@@ -29,8 +29,56 @@ function AdminSkeleton() {
 }
 
 function AdminMain() {
-  const { ready } = useAdminData();
-  return ready ? <Outlet /> : <AdminSkeleton />;
+  const { ready, loadError, refresh } = useAdminData();
+
+  if (!ready) return <AdminSkeleton />;
+
+  if (loadError) {
+    return (
+      <div style={{
+        padding: "3rem 2rem",
+        display: "flex",
+        flexDirection: "column",
+        gap: "1rem",
+        maxWidth: 560,
+      }}>
+        <h2 style={{ margin: 0, fontSize: "1.1rem", color: "var(--admin-danger, #f87171)" }}>
+          Error al conectar con NocoDB
+        </h2>
+        <p style={{ margin: 0, fontSize: "0.9rem", color: "var(--admin-muted, rgba(255,255,255,.5))", lineHeight: 1.6 }}>
+          {loadError}
+        </p>
+        <p style={{ margin: 0, fontSize: "0.85rem", color: "var(--admin-muted, rgba(255,255,255,.5))", lineHeight: 1.6 }}>
+          Verificá las variables de entorno en Render: <code>NOCODB_TOKEN</code>, <code>NOCODB_BASE</code> y los <code>NOCODB_*_TABLE</code>.
+          También podés revisar <code>/api/health</code> para ver el estado de configuración.
+        </p>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button
+            type="button"
+            className="admin-btn primary"
+            onClick={() => refresh()}
+          >
+            Reintentar
+          </button>
+          <a
+            href="/api/health"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="admin-btn"
+          >
+            Ver /api/health
+          </a>
+        </div>
+        <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,.1)", margin: "0.5rem 0" }} />
+        <p style={{ margin: 0, fontSize: "0.8rem", color: "var(--admin-muted, rgba(255,255,255,.4))" }}>
+          Datos parciales pueden seguir disponibles. Podés navegar entre secciones.
+        </p>
+        <Outlet />
+      </div>
+    );
+  }
+
+  return <Outlet />;
 }
 
 export default function AdminLayout() {

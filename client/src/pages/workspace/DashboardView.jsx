@@ -26,14 +26,22 @@ export default function DashboardView() {
   const [data, setData]             = useState(null);
   const [content, setContent]       = useState([]);
   const [loading, setLoading]       = useState(true);
+  const [fetchErr, setFetchErr]     = useState(null);
 
   useEffect(() => {
     apiFetch("/api/user/dashboard")
       .then(r => {
         setData(r.dashboard);
         setContent(r.dashboard?.recent_content ?? []);
+        if (r._errors) {
+          const names = Object.keys(r._errors).join(", ");
+          show(`Datos parciales — error en: ${names}`, "error");
+        }
       })
-      .catch(err => show(err.message || "Error cargando el dashboard", "error"))
+      .catch(err => {
+        setFetchErr(err.message || "Error cargando el dashboard");
+        show(err.message || "Error cargando el dashboard", "error");
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -64,6 +72,30 @@ export default function DashboardView() {
               ))}
             </div>
           ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (fetchErr) {
+    return (
+      <div className="dashboard">
+        <div className="dashboard-section" style={{ padding: "2rem", gap: "0.75rem", display: "flex", flexDirection: "column" }}>
+          <p style={{ margin: 0, fontWeight: 600, color: "var(--accent, #e8d5b0)" }}>Error al cargar el dashboard</p>
+          <p style={{ margin: 0, fontSize: "0.875rem", opacity: 0.6, lineHeight: 1.6 }}>{fetchErr}</p>
+          <button
+            type="button"
+            className="focus-btn-done"
+            style={{ alignSelf: "flex-start", marginTop: "0.5rem" }}
+            onClick={() => { setFetchErr(null); setLoading(true);
+              apiFetch("/api/user/dashboard")
+                .then(r => { setData(r.dashboard); setContent(r.dashboard?.recent_content ?? []); })
+                .catch(err => setFetchErr(err.message))
+                .finally(() => setLoading(false));
+            }}
+          >
+            Reintentar
+          </button>
         </div>
       </div>
     );

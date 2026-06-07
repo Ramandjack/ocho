@@ -20,12 +20,17 @@ export function useNotifications() {
   }, [applyUpdate]);
 
   useEffect(() => {
-    // EventSource sends cookies automatically (withCredentials equivalent)
-    // and is supported in all modern browsers.
-    if (typeof EventSource === "undefined") {
-      // SSR or very old browser — fall back to one-shot fetch
+    let pollId = null;
+
+    function startPolling() {
+      if (pollId) return;
       fetchOnce();
-      return;
+      pollId = setInterval(fetchOnce, 60_000);
+    }
+
+    if (typeof EventSource === "undefined") {
+      startPolling();
+      return () => clearInterval(pollId);
     }
 
     const url = `${getApiBase()}/api/user/notifications/stream`;
@@ -44,14 +49,13 @@ export function useNotifications() {
       // SSE failed (network error, proxy timeout, etc.) — close and fall back to polling
       es.close();
       esRef.current = null;
-      fetchOnce();
-      const id = setInterval(fetchOnce, 60_000);
-      return () => clearInterval(id);
+      startPolling();
     };
 
     return () => {
       es.close();
       esRef.current = null;
+      clearInterval(pollId);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

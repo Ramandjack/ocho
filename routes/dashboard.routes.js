@@ -8,15 +8,27 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
   try {
     const uuid = req.user.sub;
 
-    const [assignments, tasks, notifications] = await Promise.all([
+    const [assignmentsR, tasksR, notificationsR, contentR] = await Promise.allSettled([
       db.getWhere("user_projects",  `(user_uuid,eq,${uuid})`),
       db.getWhere("tasks",          `(assigned_to,eq,${uuid})`),
       db.getWhere("notifications",  `(user_uuid,eq,${uuid})`),
+      db.getWhere("content",        "(status,eq,published)"),
     ]);
 
-    // Fetch only published content via a targeted filter instead of getAll
-    const allContent = await db.getWhere("content", "(status,eq,published)");
-    const recentContent = allContent
+    const pick = r => (r.status === "fulfilled" ? r.value : []);
+    const errs = {};
+    [["user_projects", assignmentsR], ["tasks", tasksR], ["notifications", notificationsR], ["content", contentR]]
+      .forEach(([name, r]) => {
+        if (r.status === "rejected") {
+          errs[name] = r.reason?.message || "Error desconocido";
+          console.error(`[dashboard] Error en tabla "${name}": ${r.reason?.message}`);
+        }
+      });
+
+    const assignments   = pick(assignmentsR);
+    const tasks         = pick(tasksR);
+    const notifications = pick(notificationsR);
+    const recentContent = pick(contentR)
       .sort((a, b) => new Date(b.published_at || b.updated_at || b.CreatedAt || 0) - new Date(a.published_at || a.updated_at || a.CreatedAt || 0))
       .slice(0, 3);
 
@@ -33,8 +45,10 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
         recent_tasks:         tasks.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0)).slice(0, 5),
         recent_content:       recentContent,
       },
+      _errors: Object.keys(errs).length ? errs : undefined,
     });
   } catch (err) {
+    console.error("[dashboard] Error inesperado:", err.message);
     return res.status(500).json({ success: false, message: err.message });
   }
 });

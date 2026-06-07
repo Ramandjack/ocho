@@ -237,16 +237,19 @@ router.get("/user/projects", authMiddleware, async (req, res) => {
   try {
     const userUuid = req.user.sub;
 
-    // Obtener asignaciones del usuario
-    const assignments = await db.getWhere("user_projects", `(user_uuid,eq,${userUuid})`);
+    // getAll usa cache caliente (warmCache al arranque) — sin round-trip a NocoDB
+    const [allUserProjects, allProjects] = await Promise.all([
+      db.getAll("user_projects"),
+      db.getAll("projects"),
+    ]);
+
+    const assignments = allUserProjects.filter(r => r.user_uuid === userUuid);
 
     if (!assignments.length) {
       return res.json({ success: true, projects: [] });
     }
 
-    // Obtener todos los proyectos y filtrar por los asignados
     const projectIds = assignments.map(a => Number(a.project_id));
-    const allProjects = await db.getAll("projects");
 
     const projects = allProjects
       .filter(p => projectIds.includes(Number(p.id || p.nocodb_id)))

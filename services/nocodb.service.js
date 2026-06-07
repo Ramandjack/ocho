@@ -292,8 +292,11 @@ async function sendNotificationToMany(userUuids, type, title, message, link = ""
 
 // Precalienta en lotes de 2 para no saturar el rate limit de NocoDB
 async function warmCache() {
-  const tables = ["users", "projects", "tasks", "content", "modules", "user_modules", "leads", "activity_log"]
-    .filter(t => TABLE_IDS[t]);
+  const tables = [
+    "users", "projects", "tasks", "content", "modules",
+    "user_modules", "leads", "activity_log",
+    "user_projects", "notifications", "resources",
+  ].filter(t => TABLE_IDS[t]);
 
   for (let i = 0; i < tables.length; i += 2) {
     await Promise.allSettled(tables.slice(i, i + 2).map(t => getAll(t).catch(() => {})));

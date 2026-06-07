@@ -22,8 +22,9 @@ router.get("/user/notifications/stream", authMiddleware, async (req, res) => {
 
   const push = async () => {
     try {
-      const notifications = await db.getWhere("notifications", `(user_uuid,eq,${uuid})`);
-      const sorted = notifications.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0));
+      const all   = await db.getAll("notifications");
+      const mine  = all.filter(n => n.user_uuid === uuid);
+      const sorted = mine.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0));
       send("notifications", {
         unread: sorted.filter(n => !n.read).length,
         notifications: sorted.slice(0, 10),

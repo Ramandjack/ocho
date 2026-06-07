@@ -8,16 +8,18 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
   try {
     const uuid = req.user.sub;
 
-    const [assignmentsR, tasksR, notificationsR, contentR] = await Promise.allSettled([
-      db.getWhere("user_projects",  `(user_uuid,eq,${uuid})`),
-      db.getWhere("tasks",          `(assigned_to,eq,${uuid})`),
-      db.getWhere("notifications",  `(user_uuid,eq,${uuid})`),
-      db.getWhere("content",        "(status,eq,published)"),
+    // getAll usa el cache caliente (warmCache al arranque) — nunca golpea NocoDB
+    // en la segunda llamada. Filtrar en memoria es ~0 ms y evita timeouts 504.
+    const [upR, tR, nR, cR] = await Promise.allSettled([
+      db.getAll("user_projects"),
+      db.getAll("tasks"),
+      db.getAll("notifications"),
+      db.getAll("content"),
     ]);
 
     const pick = r => (r.status === "fulfilled" ? r.value : []);
     const errs = {};
-    [["user_projects", assignmentsR], ["tasks", tasksR], ["notifications", notificationsR], ["content", contentR]]
+    [["user_projects", upR], ["tasks", tR], ["notifications", nR], ["content", cR]]
       .forEach(([name, r]) => {
         if (r.status === "rejected") {
           errs[name] = r.reason?.message || "Error desconocido";
@@ -25,10 +27,11 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
         }
       });
 
-    const assignments   = pick(assignmentsR);
-    const tasks         = pick(tasksR);
-    const notifications = pick(notificationsR);
-    const recentContent = pick(contentR)
+    const assignments   = pick(upR).filter(r => r.user_uuid === uuid);
+    const tasks         = pick(tR).filter(t => t.assigned_to === uuid);
+    const notifications = pick(nR).filter(n => n.user_uuid === uuid);
+    const recentContent = pick(cR)
+      .filter(c => c.status === "published")
       .sort((a, b) => new Date(b.published_at || b.updated_at || b.CreatedAt || 0) - new Date(a.published_at || a.updated_at || a.CreatedAt || 0))
       .slice(0, 3);
 
@@ -62,17 +65,17 @@ router.get("/user/dashboard", authMiddleware, async (req, res) => {
 router.get("/user/ping", authMiddleware, async (req, res) => {
   const uuid = req.user.sub;
   const [upR, tR, nR] = await Promise.allSettled([
-    db.getWhere("user_projects", `(user_uuid,eq,${uuid})`),
-    db.getWhere("tasks",         `(assigned_to,eq,${uuid})`),
-    db.getWhere("notifications", `(user_uuid,eq,${uuid})`),
+    db.getAll("user_projects"),
+    db.getAll("tasks"),
+    db.getAll("notifications"),
   ]);
   return res.json({
     success: true,
     user: { uuid, email: req.user.email, role: req.user.role },
     counts: {
-      user_projects:  upR.status === "fulfilled" ? upR.value.length  : `ERROR: ${upR.reason?.message}`,
-      tasks_assigned: tR.status  === "fulfilled" ? tR.value.length   : `ERROR: ${tR.reason?.message}`,
-      notifications:  nR.status  === "fulfilled" ? nR.value.length   : `ERROR: ${nR.reason?.message}`,
+      user_projects:  upR.status === "fulfilled" ? upR.value.filter(r => r.user_uuid === uuid).length  : `ERROR: ${upR.reason?.message}`,
+      tasks_assigned: tR.status  === "fulfilled" ? tR.value.filter(t => t.assigned_to === uuid).length : `ERROR: ${tR.reason?.message}`,
+      notifications:  nR.status  === "fulfilled" ? nR.value.filter(n => n.user_uuid === uuid).length   : `ERROR: ${nR.reason?.message}`,
     },
   });
 });

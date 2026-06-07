@@ -24,8 +24,10 @@ router.post("/admin/notifications/send", authMiddleware, requireAdmin, async (re
 
 router.get("/user/notifications", authMiddleware, async (req, res) => {
   try {
-    const notifications = await db.getWhere("notifications", `(user_uuid,eq,${req.user.sub})`);
-    const sorted = notifications.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0));
+    const uuid  = req.user.sub;
+    const all   = await db.getAll("notifications");
+    const mine  = all.filter(n => n.user_uuid === uuid);
+    const sorted = mine.sort((a, b) => new Date(b.CreatedAt || 0) - new Date(a.CreatedAt || 0));
     const unread = sorted.filter(n => !n.read).length;
     return res.json({ success: true, notifications: sorted, unread });
   } catch (err) {

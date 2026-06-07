@@ -88,7 +88,9 @@ router.delete("/admin/tasks/:id", authMiddleware, requireAdmin, async (req, res)
 
 router.get("/user/tasks", authMiddleware, async (req, res) => {
   try {
-    const tasks = await db.getWhere("tasks", `(assigned_to,eq,${req.user.sub})`);
+    const uuid = req.user.sub;
+    const all  = await db.getAll("tasks");
+    const tasks = all.filter(t => t.assigned_to === uuid);
     return res.json({ success: true, tasks });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });

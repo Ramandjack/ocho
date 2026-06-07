@@ -18,13 +18,24 @@ export function getApiBase() {
   return "";
 }
 
+async function _doFetch(url, opts) {
+  const response = await fetch(url, opts);
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const err = new Error(data.message || `HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+  return data;
+}
+
 export async function apiFetch(path, options = {}) {
   const base = getApiBase();
   const method = (options.method || "GET").toUpperCase();
   const isMutating = ["POST", "PATCH", "PUT", "DELETE"].includes(method);
-
   const csrfToken = isMutating ? getCsrfToken() : "";
-  const response = await fetch(`${base}${path}`, {
+
+  const fetchOpts = {
     credentials: "include",
     headers: {
       "Content-Type": "application/json",
@@ -32,17 +43,18 @@ export async function apiFetch(path, options = {}) {
       ...(options.headers || {}),
     },
     ...options,
-  });
+  };
 
-  const data = await response.json().catch(() => ({}));
-
-  if (!response.ok) {
-    const err = new Error(data.message || `HTTP ${response.status}`);
-    err.status = response.status;
+  try {
+    return await _doFetch(`${base}${path}`, fetchOpts);
+  } catch (err) {
+    // 504 = Render durmiendo (Netlify proxy timeout). Reintentar una vez tras 5 s.
+    if (err.status === 504 && method === "GET") {
+      await new Promise(r => setTimeout(r, 5000));
+      return _doFetch(`${base}${path}`, fetchOpts);
+    }
     throw err;
   }
-
-  return data;
 }
 
 export async function getCurrentUser() {

@@ -2799,3 +2799,227 @@
   opacity: 0.3;
   cursor: default;
 }
+
+/* ===========================
+   MOBILE BAR + HAMBURGER
+=========================== */
+
+.workspace-mobile-bar {
+  display: none;
+}
+
+.sidebar-toggle {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle:hover {
+  background: var(--panel-hover);
+}
+
+.sidebar-toggle-icon,
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  display: block;
+  width: 18px;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.sidebar-toggle-icon {
+  position: relative;
+}
+
+.sidebar-toggle-icon::before,
+.sidebar-toggle-icon::after {
+  content: "";
+  position: absolute;
+  left: 0;
+}
+
+.sidebar-toggle-icon::before { top: -5px; }
+.sidebar-toggle-icon::after  { top: 5px; }
+
+.workspace.sidebar-open .sidebar-toggle-icon { background: transparent; }
+.workspace.sidebar-open .sidebar-toggle-icon::before { transform: rotate(45deg); top: 0; }
+.workspace.sidebar-open .sidebar-toggle-icon::after  { transform: rotate(-45deg); top: 0; }
+
+/* ===========================
+   SIDEBAR BACKDROP
+=========================== */
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* ===========================
+   WORKSPACE TOASTS
+=========================== */
+
+.ws-toast-container {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.ws-toast {
+  background: var(--bg-elevated);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 0.6rem 1rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  max-width: 320px;
+  animation: wsToastIn 0.18s ease;
+}
+
+.ws-toast.error  { border-color: rgba(220, 80, 80, 0.5);  color: rgba(220, 80, 80, 0.9); }
+.ws-toast.success { border-color: rgba(100, 200, 140, 0.5); color: rgba(100, 200, 140, 0.9); }
+.ws-toast.warning { border-color: rgba(220, 180, 60, 0.5);  color: rgba(220, 180, 60, 0.9); }
+
+@keyframes wsToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===========================
+   RESPONSIVE — MOBILE (≤ 768px)
+=========================== */
+
+@media (max-width: 768px) {
+  /* Show mobile top bar */
+  .workspace-mobile-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 52px;
+    padding: 0 1rem;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--line);
+    z-index: 200;
+  }
+
+  .workspace-mobile-bar .sidebar-brand-word {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--text);
+  }
+
+  /* Push main content below the bar */
+  .workspace-main {
+    padding: 1.25rem 1rem;
+    padding-top: calc(52px + 1.25rem);
+  }
+
+  /* Sidebar becomes a fixed drawer */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 240px;
+    z-index: 300;
+    transform: translateX(-100%);
+    transition: transform 0.22s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
+  }
+
+  .workspace.sidebar-open .sidebar {
+    transform: translateX(0);
+    box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Backdrop */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 299;
+    animation: wsToastIn 0.18s ease;
+  }
+
+  /* Stats: 2×2 grid */
+  .dashboard-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-card:nth-child(2) {
+    border-right: none;
+  }
+
+  .stat-card:nth-child(3),
+  .stat-card:nth-child(4) {
+    border-top: 1px solid var(--line);
+  }
+
+  /* Dashboard two-column sections → single column */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Dashboard content grid → single column */
+  .dashboard-content-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Hero padding reduced */
+  .dashboard-hero {
+    padding: 2rem 1.5rem 1.75rem;
+  }
+
+  /* Project cards full width */
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Task filter tabs: scroll horizontally */
+  .task-filters {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+    flex-wrap: nowrap;
+  }
+
+  .task-filter-btn {
+    flex-shrink: 0;
+  }
+
+  /* Resource filters: scroll horizontally */
+  .resource-filters {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+    flex-wrap: nowrap;
+  }
+
+  /* Toast position */
+  .ws-toast-container {
+    bottom: 1rem;
+    right: 1rem;
+    left: 1rem;
+  }
+
+  .ws-toast {
+    max-width: 100%;
+  }
+}

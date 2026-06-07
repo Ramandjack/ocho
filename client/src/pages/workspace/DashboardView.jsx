@@ -22,7 +22,7 @@ function StatCard({ value, label }) {
 const TAGS = ["CONTENIDO", "RECURSOS EXCLUSIVOS", "EDITORIAL", "CRM COMMUNITY"];
 
 export default function DashboardView() {
-  const { user }                    = useOutletContext();
+  const { user, show }              = useOutletContext();
   const [data, setData]             = useState(null);
   const [content, setContent]       = useState([]);
   const [loading, setLoading]       = useState(true);
@@ -33,7 +33,7 @@ export default function DashboardView() {
         setData(r.dashboard);
         setContent(r.dashboard?.recent_content ?? []);
       })
-      .catch(() => {})
+      .catch(err => show(err.message || "Error cargando el dashboard", "error"))
       .finally(() => setLoading(false));
   }, []);
 

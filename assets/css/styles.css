@@ -287,6 +287,10 @@ video::cue {
   color: #ffc8c8;
 }
 
+.form-status.warning {
+  color: #ffeaaa;
+}
+
 /* =========================
    FOOTER
 ========================= */

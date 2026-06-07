@@ -506,3 +506,21 @@
     font-size: 0.9rem;
   }
 }
+
+/* ===========================
+   REGISTER — PENDING STATE
+=========================== */
+
+.auth-pending-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 0.5rem 0 0.25rem;
+}
+
+.auth-pending-msg {
+  font-size: 0.925rem;
+  color: var(--muted, rgba(255, 255, 255, 0.55));
+  line-height: 1.65;
+  margin: 0;
+}

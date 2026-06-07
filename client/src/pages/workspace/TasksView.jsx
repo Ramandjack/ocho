@@ -138,7 +138,7 @@ function NewTaskForm({ projects, userUuid, onSuccess, onClose }) {
 }
 
 export default function TasksView() {
-  const { user }              = useOutletContext();
+  const { user, show }        = useOutletContext();
   const [tasks, setTasks]     = useState([]);
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -162,7 +162,7 @@ export default function TasksView() {
         setTasks(tRes.tasks ?? []);
         setProjects(pRes.projects ?? []);
       })
-      .catch(() => {})
+      .catch(err => show(err.message || "Error cargando las tareas", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -186,10 +186,11 @@ export default function TasksView() {
         method: "PATCH",
         body: JSON.stringify({ status: next }),
       });
-    } catch {
+    } catch (err) {
       setTasks(prev =>
         prev.map(t => (t.nocodb_id ?? t.id) === id ? { ...t, status: task.status } : t)
       );
+      show(err.message || "No se pudo actualizar el estado de la tarea", "error");
     }
   }
 

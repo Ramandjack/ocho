@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const navigate = useNavigate();
   const [status, setStatus] = useState({ text: "", type: "" });
   const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -50,11 +51,7 @@ export default function RegisterPage() {
         body: JSON.stringify(payload),
       });
       if (r.pending) {
-        setStatus({
-          text: "¡Solicitud enviada! Tu cuenta está pendiente de aprobación por un administrador. Te notificaremos cuando esté activa.",
-          type: "success",
-        });
-        // No se redirige: el usuario no tiene acceso hasta ser aprobado
+        setDone(true);
       } else {
         setStatus({ text: "Cuenta creada correctamente. Redirigiendo…", type: "success" });
         setTimeout(() => navigate("/panel", { replace: true }), 900);
@@ -64,6 +61,32 @@ export default function RegisterPage() {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  if (done) {
+    return (
+      <div className="auth-body">
+        <AuthLayout
+          brandEyebrow="OCHO COMMUNITY"
+          brandTitle="Accede a ideas, criterio y contenido con dirección."
+          brandQuote="Newsletter, fotografías, revistas, libros y piezas seleccionadas para una comunidad que valora claridad, sistema y visión."
+          benefits={["Contenido curado", "Recursos exclusivos", "Mirada editorial y estratégica", "Acceso anticipado a novedades"]}
+          eyebrow="Registro"
+          title="Solicitud enviada"
+          subtitle=""
+        >
+          <div className="auth-pending-card">
+            <p className="auth-pending-msg">
+              Tu cuenta está pendiente de aprobación por un administrador.
+              Te notificaremos cuando esté activa y puedas ingresar.
+            </p>
+            <Link to="/login" className="btn btn-solid btn-full">
+              Volver al inicio
+            </Link>
+          </div>
+        </AuthLayout>
+      </div>
+    );
   }
 
   return (
@@ -149,9 +172,9 @@ export default function RegisterPage() {
               id="password"
               name="password"
               type="password"
-              placeholder="Mínimo 6 caracteres"
+              placeholder="Mínimo 8 caracteres"
               required
-              minLength={6}
+              minLength={8}
               autoComplete="new-password"
             />
           </div>

@@ -35,7 +35,9 @@ export default function LoginPage() {
         setTimeout(() => navigate("/panel", { replace: true }), 400);
       }
     } catch (err) {
-      setStatus({ text: err.message || "No se pudo iniciar sesión", type: "error" });
+      // 403 = cuenta pendiente/rechazada/baneada → tipo warning, no error
+      const type = err.status === 403 ? "warning" : "error";
+      setStatus({ text: err.message || "No se pudo iniciar sesión", type });
     } finally {
       setSubmitting(false);
     }

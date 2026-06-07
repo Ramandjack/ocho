@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { apiFetch, apiUpload } from "../../lib/api.js";
 
 const TYPE_OPTIONS = ["link", "doc", "tool", "template", "note"];
@@ -20,7 +21,7 @@ function isFileResource(url = "") {
   return url.startsWith("/api/files/");
 }
 
-function ResourceCard({ resource, onDelete, canDelete }) {
+function ResourceCard({ resource, onDelete, onError, canDelete }) {
   const [confirming, setConfirming] = useState(false);
 
   async function handleDelete() {
@@ -29,8 +30,9 @@ function ResourceCard({ resource, onDelete, canDelete }) {
     try {
       await apiFetch(`/api/user/resources/${id}`, { method: "DELETE" });
       onDelete(id);
-    } catch {
+    } catch (err) {
       setConfirming(false);
+      onError(err.message || "No se pudo eliminar el recurso");
     }
   }
 
@@ -229,6 +231,7 @@ function AddResourceForm({ projects, onAdd, onClose }) {
 }
 
 export default function ResourcesView() {
+  const { show }                  = useOutletContext();
   const [resources, setResources] = useState([]);
   const [projects, setProjects]   = useState([]);
   const [loading, setLoading]     = useState(true);
@@ -247,7 +250,7 @@ export default function ResourcesView() {
         setProjects(pRes.projects ?? []);
         setCurrentUser(meRes.user ?? null);
       })
-      .catch(() => {})
+      .catch(err => show(err.message || "Error cargando los recursos", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -341,6 +344,7 @@ export default function ResourcesView() {
                           key={r.nocodb_id ?? r.id}
                           resource={r}
                           onDelete={handleDelete}
+                          onError={msg => show(msg, "error")}
                           canDelete={r.created_by === currentUser?.uuid}
                         />
                       ))}

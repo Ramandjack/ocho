@@ -74,16 +74,28 @@ router.get("/admin/bootstrap", authMiddleware, requireAdmin, async (req, res) =>
 
   const pick = r => (r.status === "fulfilled" ? r.value : []);
 
+  const users    = pick(usersR);
+  const leads    = pick(leadsR);
+  const projects = pick(projectsR);
+  const tasks    = pick(tasksR);
+  const modules  = pick(modulesR);
+  const content  = pick(contentR);
+  const activity = pick(activityR);
+
+  const counts = { users: users.length, leads: leads.length, projects: projects.length, tasks: tasks.length, modules: modules.length, content: content.length, activity: activity.length };
+  console.log("[bootstrap] Registros por tabla:", counts);
+
   return res.json({
     success:  true,
-    users:    pick(usersR),
-    leads:    pick(leadsR),
-    projects: pick(projectsR),
-    tasks:    pick(tasksR),
-    modules:  pick(modulesR),
-    content:  pick(contentR),
-    activity: pick(activityR),
-    _errors:  Object.keys(errors).length ? errors : undefined,
+    users,
+    leads,
+    projects,
+    tasks,
+    modules,
+    content,
+    activity,
+    _counts: counts,
+    _errors: Object.keys(errors).length ? errors : undefined,
   });
 });
 

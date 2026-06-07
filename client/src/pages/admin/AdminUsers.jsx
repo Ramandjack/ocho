@@ -164,6 +164,7 @@ export default function AdminUsers() {
               className="admin-control"
               type="search"
               placeholder="Buscar por nombre, email, empresa…"
+              aria-label="Buscar usuarios"
               style={{ flex: 1, minWidth: 160 }}
               value={search}
               onChange={e => setSearch(e.target.value)}

@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useOutletContext } from "react-router-dom";
 import { apiFetch } from "../../lib/api.js";
 
 const TYPES = [
@@ -64,19 +65,54 @@ function ContentCard({ item, onClick }) {
   );
 }
 
+const READER_TITLE_ID = "content-reader-title";
+
 function ReaderModal({ item, onClose }) {
+  const articleRef = useRef(null);
+
   useEffect(() => {
-    function onKey(e) { if (e.key === "Escape") onClose(); }
+    const prevFocus = document.activeElement;
+    articleRef.current?.focus();
+
+    function onKey(e) {
+      if (e.key === "Escape") { onClose(); return; }
+      if (e.key !== "Tab") return;
+      const focusable = Array.from(
+        articleRef.current?.querySelectorAll(
+          'a[href], button:not([disabled]), input, textarea, select, [tabindex]:not([tabindex="-1"])'
+        ) ?? []
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last  = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    }
+
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      prevFocus?.focus();
+    };
   }, [onClose]);
 
   const date = item.published_at || item.updated_at || item.CreatedAt;
 
   return (
     <div className="content-reader-overlay" onClick={onClose}>
-      <article className="content-reader" onClick={e => e.stopPropagation()}>
-        <button className="content-reader-close" onClick={onClose}>✕</button>
+      <article
+        ref={articleRef}
+        className="content-reader"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={READER_TITLE_ID}
+        tabIndex={-1}
+        onClick={e => e.stopPropagation()}
+      >
+        <button className="content-reader-close" onClick={onClose} aria-label="Cerrar">✕</button>
 
         {item.cover_url && (
           <img src={item.cover_url} alt={item.title} className="content-reader-cover" />
@@ -84,7 +120,7 @@ function ReaderModal({ item, onClose }) {
 
         <div className="content-reader-header">
           <TypeBadge type={item.type} />
-          <h1 className="content-reader-title">{item.title}</h1>
+          <h1 id={READER_TITLE_ID} className="content-reader-title">{item.title}</h1>
           {item.excerpt && <p className="content-reader-excerpt">{item.excerpt}</p>}
           <div className="content-reader-meta">
             {item.author_name && <span>Por {item.author_name}</span>}
@@ -115,7 +151,29 @@ function ReaderModal({ item, onClose }) {
   );
 }
 
+function ContentSkeleton() {
+  return (
+    <div className="content-view">
+      <header className="view-header">
+        <div className="skeleton-block" style={{ height: "1.5rem", width: "10rem" }} />
+      </header>
+      <div className="skeleton-block" style={{ height: "200px", borderRadius: "var(--radius-sm, 8px)" }} />
+      <div className="content-grid">
+        {[0, 1, 2].map(i => (
+          <div key={i} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            <div className="skeleton-block" style={{ height: "140px", borderRadius: "8px" }} />
+            <div className="skeleton-block" style={{ height: "0.7rem", width: "4rem" }} />
+            <div className="skeleton-block" style={{ height: "1rem", width: "85%" }} />
+            <div className="skeleton-block" style={{ height: "0.8rem", width: "65%" }} />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function ContentView() {
+  const { show }                = useOutletContext();
   const [items, setItems]       = useState([]);
   const [loading, setLoading]   = useState(true);
   const [filter, setFilter]     = useState("all");
@@ -125,7 +183,7 @@ export default function ContentView() {
   useEffect(() => {
     apiFetch("/api/user/content")
       .then(r => { if (r.success) setItems(r.content || []); })
-      .catch(() => {})
+      .catch(err => show(err.message || "Error cargando los contenidos", "error"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -141,7 +199,7 @@ export default function ContentView() {
   const featured  = filtered[0];
   const rest      = filtered.slice(1);
 
-  if (loading) return <div className="view-loading">Cargando contenidos…</div>;
+  if (loading) return <ContentSkeleton />;
 
   return (
     <div className="content-view">
@@ -170,7 +228,9 @@ export default function ContentView() {
         </div>
         <input
           className="content-view-search"
+          type="search"
           placeholder="Buscar…"
+          aria-label="Buscar contenidos"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />

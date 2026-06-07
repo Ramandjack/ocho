@@ -59,7 +59,25 @@ export default function ActivityView() {
     }
   }
 
-  if (loading) return <div className="view-loading">Cargando actividad…</div>;
+  if (loading) return (
+    <div className="activity-view">
+      <header className="view-header">
+        <div className="skeleton-block" style={{ height: "1.5rem", width: "9rem" }} />
+      </header>
+      <ul className="activity-list" style={{ listStyle: "none", padding: 0, margin: 0 }}>
+        {[0, 1, 2, 3, 4].map(i => (
+          <li key={i} className="activity-item">
+            <div className="skeleton-block" style={{ height: "28px", width: "28px", borderRadius: "50%", flexShrink: 0 }} />
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+              <div className="skeleton-block" style={{ height: "0.875rem", width: `${55 + (i % 3) * 15}%` }} />
+              <div className="skeleton-block" style={{ height: "0.75rem", width: "40%" }} />
+            </div>
+            <div className="skeleton-block" style={{ height: "0.75rem", width: "3.5rem", flexShrink: 0 }} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
 
   return (
     <div className="activity-view">
@@ -93,7 +111,10 @@ export default function ActivityView() {
                 className={`activity-item${!item.read ? " unread" : ""}`}
                 onClick={() => markRead(item)}
               >
-                <span className={`activity-dot type-${item.type ?? "system"}`}>
+                <span
+                  className={`activity-dot type-${item.type ?? "system"}`}
+                  aria-hidden="true"
+                >
                   {TYPE_DOT[item.type] ?? "·"}
                 </span>
 

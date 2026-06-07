@@ -1,8 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "../../lib/api.js";
 
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function renderMarkdown(text) {
-  return text
+  const safe = escapeHtml(text);
+  return safe
     .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
     .replace(/^- (.+)$/gm, "<li>$1</li>")
     .replace(/((<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>")
@@ -174,6 +184,7 @@ export default function AIView() {
           <button
             type="submit"
             className="ai-chat-send"
+            aria-label="Enviar mensaje"
             disabled={!input.trim() || sending}
           >
             →

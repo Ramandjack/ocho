@@ -59,6 +59,7 @@ export default function AdminLeads() {
               className="admin-control"
               type="search"
               placeholder="Buscar por nombre, email, empresa…"
+              aria-label="Buscar leads"
               style={{ flex: 1, minWidth: 160 }}
               value={search}
               onChange={e => setSearch(e.target.value)}

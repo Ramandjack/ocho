@@ -61,7 +61,11 @@ function QueueItem({ task, projectMap, onDone }) {
         <span className="focus-queue-title">{task.title}</span>
         {name && <span className="focus-queue-project">{name}</span>}
       </div>
-      <button className="focus-queue-done" onClick={() => onDone(task)}>✓</button>
+      <button
+        className="focus-queue-done"
+        onClick={() => onDone(task)}
+        aria-label={`Completar "${task.title}"`}
+      >✓</button>
     </li>
   );
 }
@@ -140,7 +144,22 @@ export default function WorkspaceFocusView() {
     setFocusIndex(i => (i + 1) % inProgress.length);
   }
 
-  if (loading) return <div className="view-loading">Cargando workspace…</div>;
+  if (loading) return (
+    <div className="focus-view">
+      <header className="view-header">
+        <div className="skeleton-block" style={{ height: "1.5rem", width: "10rem" }} />
+      </header>
+      <div className="focus-card" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+        <div className="skeleton-block" style={{ height: "0.8rem", width: "5rem" }} />
+        <div className="skeleton-block" style={{ height: "1.35rem", width: "80%" }} />
+        <div className="skeleton-block" style={{ height: "0.875rem", width: "60%" }} />
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <div className="skeleton-block" style={{ height: "2.2rem", width: "8rem", borderRadius: "6px" }} />
+          <div className="skeleton-block" style={{ height: "2.2rem", width: "7rem", borderRadius: "6px" }} />
+        </div>
+      </div>
+    </div>
+  );
 
   const safeIndex  = inProgress.length ? focusIndex % inProgress.length : 0;
   const focusTask  = inProgress[safeIndex] ?? null;

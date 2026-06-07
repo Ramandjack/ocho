@@ -199,7 +199,28 @@ export default function TasksView() {
     : tasks.filter(t => t.status === filter);
 
   if (loading) {
-    return <div className="view-loading">Cargando tareas…</div>;
+    return (
+      <div className="tasks-view">
+        <header className="view-header">
+          <div className="skeleton-block" style={{ height: "1.5rem", width: "8rem" }} />
+        </header>
+        <div className="task-filters">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="skeleton-block" style={{ height: "2rem", width: "6rem", borderRadius: "999px" }} />
+          ))}
+        </div>
+        <ul className="task-list">
+          {[0, 1, 2, 3, 4].map(i => (
+            <li key={i} className="task-item">
+              <div className="skeleton-block" style={{ height: "1.6rem", width: "5.5rem", borderRadius: "999px", flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div className="skeleton-block" style={{ height: "0.875rem", width: `${60 + (i % 3) * 15}%` }} />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
   }
 
   return (

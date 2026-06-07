@@ -44,7 +44,29 @@ export default function DashboardView() {
   ).toUpperCase();
 
   if (loading) {
-    return <div className="dashboard-loading">Cargando sistema…</div>;
+    return (
+      <div className="dashboard">
+        <div className="skeleton-block" style={{ height: "220px", borderRadius: "var(--radius-sm, 8px)" }} />
+        <div className="dashboard-stats">
+          {[0, 1, 2, 3].map(i => (
+            <div key={i} className="stat-card" style={{ gap: "0.6rem" }}>
+              <div className="skeleton-block" style={{ height: "2.4rem", width: "3rem" }} />
+              <div className="skeleton-block" style={{ height: "0.7rem", width: "5rem" }} />
+            </div>
+          ))}
+        </div>
+        <div className="dashboard-grid">
+          {[0, 1].map(i => (
+            <div key={i} className="dashboard-section" style={{ gap: "0.75rem" }}>
+              <div className="skeleton-block" style={{ height: "0.7rem", width: "8rem" }} />
+              {[0, 1, 2].map(j => (
+                <div key={j} className="skeleton-block" style={{ height: "2rem" }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const tasks         = data?.recent_tasks         ?? [];

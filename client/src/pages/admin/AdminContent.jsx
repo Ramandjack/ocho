@@ -230,7 +230,9 @@ export default function AdminContent() {
         </div>
         <input
           className="admin-input content-search"
+          type="search"
           placeholder="Buscar por título o autor…"
+          aria-label="Buscar contenidos"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />

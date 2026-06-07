@@ -144,7 +144,7 @@ function NewProjectForm({ onSuccess, onClose }) {
 }
 
 export default function ProjectsView() {
-  const { user }                    = useOutletContext();
+  const { user, show }              = useOutletContext();
   const [projects, setProjects]     = useState([]);
   const [loading, setLoading]       = useState(true);
   const [adding, setAdding]         = useState(false);
@@ -156,8 +156,8 @@ export default function ProjectsView() {
     try {
       const res = await apiFetch("/api/user/projects");
       setProjects(res.projects ?? []);
-    } catch {
-      /* mantener lista actual si falla */
+    } catch (err) {
+      show(err.message || "Error cargando los proyectos", "error");
     }
   }
 
@@ -173,7 +173,25 @@ export default function ProjectsView() {
   }
 
   if (loading) {
-    return <div className="view-loading">Cargando proyectos…</div>;
+    return (
+      <div className="projects-view">
+        <header className="view-header">
+          <div className="skeleton-block" style={{ height: "1.5rem", width: "10rem" }} />
+        </header>
+        <div className="projects-grid">
+          {[0, 1, 2].map(i => (
+            <div key={i} className="project-card" style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div className="skeleton-block" style={{ height: "1rem", width: "55%" }} />
+                <div className="skeleton-block" style={{ height: "1rem", width: "20%" }} />
+              </div>
+              <div className="skeleton-block" style={{ height: "0.8rem", width: "85%" }} />
+              <div className="skeleton-block" style={{ height: "0.7rem", width: "40%" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (

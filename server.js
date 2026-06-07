@@ -125,10 +125,11 @@ app.get("/admin.html",    (_req, res) => res.redirect(302, "/app/admin"));
    HEALTH
 ========================= */
 
-app.get("/api/health", (_req, res) => {
+app.get("/api/health", async (_req, res) => {
   const tableStatus = Object.fromEntries(
     Object.entries(db.TABLE_IDS).map(([k, v]) => [k, !!v])
   );
+  const ping = await db.ping();
   res.json({
     success:     true,
     status:      "ok",
@@ -138,6 +139,7 @@ app.get("/api/health", (_req, res) => {
       base:     !!process.env.NOCODB_BASE,
       host:     process.env.NOCODB_HOST || "https://app.nocodb.com/api/v3/data (default)",
       tables:   tableStatus,
+      ping,
     },
   });
 });

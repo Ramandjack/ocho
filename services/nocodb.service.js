@@ -301,6 +301,37 @@ async function warmCache() {
   }
 }
 
+async function ping() {
+  if (!TOKEN)       return { ok: false, error: "NOCODB_TOKEN no configurado" };
+  if (!NOCODB_BASE) return { ok: false, error: "NOCODB_BASE no configurado" };
+
+  // Prueba con la tabla users — 1 registro, sin cache
+  const tableId = TABLE_IDS.users;
+  if (!tableId) return { ok: false, error: "NOCODB_USERS_TABLE no configurado" };
+
+  const url = `${NOCODB_HOST}/${NOCODB_BASE}/${tableId}/records?limit=1`;
+  try {
+    const res = await fetch(url, {
+      headers: { "Content-Type": "application/json", "xc-token": TOKEN },
+    });
+    const ct   = res.headers.get("content-type") || "";
+    const body = ct.includes("application/json") ? await res.json() : await res.text();
+    if (!res.ok) {
+      const msg = typeof body === "object"
+        ? body.msg || body.message || JSON.stringify(body)
+        : String(body);
+      return { ok: false, status: res.status, error: msg };
+    }
+    const count = Array.isArray(body?.list) ? body.list.length
+                : Array.isArray(body?.records) ? body.records.length
+                : Array.isArray(body) ? body.length
+                : -1;
+    return { ok: true, status: res.status, records_fetched: count };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
 export const db = {
   getAll,
   getWhere,
@@ -314,5 +345,6 @@ export const db = {
   sendNotificationToMany,
   clearTableCache,
   warmCache,
+  ping,
   TABLE_IDS,
 };

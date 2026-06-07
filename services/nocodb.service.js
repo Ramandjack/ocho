@@ -106,17 +106,20 @@ function extractList(result) {
    CACHE
 =========================== */
 
-const CACHE_TTL_MS = 5 * 60_000; // 5 min default
+const CACHE_TTL_MS = 30 * 60_000; // 30 min default
 
 const TABLE_TTL = {
-  content:      10 * 60_000,
-  modules:      10 * 60_000,
-  user_modules: 10 * 60_000,
-  users:        10 * 60_000,
-  projects:      5 * 60_000,
-  tasks:         5 * 60_000,
-  leads:         5 * 60_000,
-  activity_log:  5 * 60_000,
+  content:          30 * 60_000,
+  modules:          30 * 60_000,
+  user_modules:     30 * 60_000,
+  users:            30 * 60_000,
+  projects:         30 * 60_000,
+  tasks:            30 * 60_000,
+  leads:            30 * 60_000,
+  activity_log:     30 * 60_000,
+  user_projects:    30 * 60_000,
+  notifications:    30 * 60_000,
+  resources:        30 * 60_000,
 };
 
 const _cache    = new Map();

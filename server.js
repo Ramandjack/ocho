@@ -142,6 +142,10 @@ app.get("/api/health", async (_req, res) => {
       ping,
     },
   });
+  // Refrescar cache en background sin bloquear la respuesta.
+  // El cron externo pingea este endpoint cada 10 min, lo que mantiene
+  // el cache caliente y evita cold-starts de 15-20 s para los usuarios.
+  db.warmCache().catch(() => {});
 });
 
 /* =========================

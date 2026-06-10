@@ -17,6 +17,17 @@ const TYPE_LABEL = {
   ia:          "IA",
 };
 
+const PHASE_LABEL = {
+  discovery:   "Discovery",
+  brief:       "Brief",
+  design:      "Diseño",
+  development: "Desarrollo",
+  testing:     "Testing",
+  launch:      "Lanzamiento",
+};
+
+const PHASE_ORDER = ["discovery", "brief", "design", "development", "testing", "launch"];
+
 const PERM_LABEL = {
   editor: "editor",
   viewer: "lector",
@@ -230,31 +241,50 @@ export default function ProjectsView() {
         </div>
       ) : (
         <div className={`projects-grid${refreshing ? " refreshing" : ""}`}>
-          {projects.map(p => (
-            <Link
-              key={p.nocodb_id ?? p.id}
-              to={`/panel/projects/${p.nocodb_id ?? p.id}`}
-              className="project-card"
-            >
-              <div className="project-card-head">
-                <span className="project-card-title">{p.title}</span>
-                <span className={`project-card-status ${p.status ?? ""}`}>
-                  {STATUS_LABEL[p.status] ?? p.status}
-                </span>
-              </div>
-              {p.description && (
-                <p className="project-card-desc">{p.description}</p>
-              )}
-              <div className="project-card-meta">
-                <span className="project-card-type">
-                  {TYPE_LABEL[p.type] ?? p.type ?? "—"}
-                </span>
-                <span className="project-card-perm">
-                  {PERM_LABEL[p.permission] ?? p.permission ?? "lector"}
-                </span>
-              </div>
-            </Link>
-          ))}
+          {projects.map(p => {
+            const phase    = p.current_phase || "discovery";
+            const phaseIdx = PHASE_ORDER.indexOf(phase);
+            const phasePct = phaseIdx >= 0 ? Math.round((phaseIdx / (PHASE_ORDER.length - 1)) * 100) : 0;
+            const score    = Number(p.score_total || 0);
+
+            return (
+              <Link
+                key={p.nocodb_id ?? p.id}
+                to={`/panel/projects/${p.nocodb_id ?? p.id}`}
+                className="project-card"
+              >
+                <div className="project-card-head">
+                  <span className="project-card-title">{p.title}</span>
+                  <span className={`project-card-status ${p.status ?? ""}`}>
+                    {STATUS_LABEL[p.status] ?? p.status}
+                  </span>
+                </div>
+
+                {p.description && (
+                  <p className="project-card-desc">{p.description}</p>
+                )}
+
+                {/* Phase progress */}
+                <div className="project-card-phase">
+                  <div className="project-card-phase-track">
+                    <div className="project-card-phase-fill" style={{ width: `${phasePct}%` }} />
+                  </div>
+                  <span className="project-card-phase-label">
+                    {PHASE_LABEL[phase] ?? phase}
+                  </span>
+                </div>
+
+                <div className="project-card-meta">
+                  <span className="project-card-type">
+                    {TYPE_LABEL[p.type] ?? p.type ?? "—"}
+                  </span>
+                  {score > 0 && (
+                    <span className="project-card-score">Score {score}/100</span>
+                  )}
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

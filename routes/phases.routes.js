@@ -1,10 +1,73 @@
 import express from "express";
+import rateLimit from "express-rate-limit";
 import { db } from "../services/nocodb.service.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
 
 const VALID_PHASES = ["discovery", "brief", "design", "development", "testing", "launch"];
+
+/* ===========================
+   AI HELPERS
+=========================== */
+
+const phaseAiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 15,
+  keyGenerator: req => req.user?.sub || req.ip,
+  message: { success: false, message: "Demasiados análisis. Esperá 15 minutos." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+async function callClaude(system, userContent) {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) {
+    return "La integración con IA no está configurada todavía. El equipo OCHO completará este análisis manualmente.";
+  }
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type":      "application/json",
+      "x-api-key":         key,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model:      "claude-haiku-4-5-20251001",
+      max_tokens: 700,
+      system,
+      messages: [{ role: "user", content: userContent }],
+    }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error?.message ?? `Claude ${res.status}`);
+  return data.content?.[0]?.text ?? "";
+}
+
+function formatQuestionnaire(q) {
+  if (!q || typeof q !== "object") return "(sin respuestas)";
+  const entries = Object.entries(q).filter(([, v]) => String(v || "").trim());
+  if (!entries.length) return "(sin respuestas)";
+  return entries.map(([k, v]) => `- ${k}: ${String(v).slice(0, 500)}`).join("\n");
+}
+
+const PHASE_SYSTEM = {
+  discovery:   "Sos un Product Manager senior analizando el discovery de un producto digital para OCHO Studio. Respondés en español, de forma concisa y directa. Usás markdown básico (negritas, listas con guiones) cuando mejora la claridad.",
+  brief:       "Sos un Product Owner definiendo el alcance de un producto digital para OCHO Studio. Respondés en español, de forma concisa y directa. Usás markdown básico cuando mejora la claridad.",
+  design:      "Sos un UX Designer senior evaluando requerimientos de diseño para OCHO Studio. Respondés en español, de forma concisa y directa. Usás markdown básico cuando mejora la claridad.",
+  development: "Sos un Software Architect evaluando requerimientos técnicos para OCHO Studio. Respondés en español, de forma concisa y directa. Usás markdown básico cuando mejora la claridad.",
+  testing:     "Sos un QA Lead planificando el testing de un producto digital para OCHO Studio. Respondés en español, de forma concisa y directa. Usás markdown básico cuando mejora la claridad.",
+  launch:      "Sos un Growth Product Manager planificando el lanzamiento de un producto digital para OCHO Studio. Respondés en español, de forma concisa y directa. Usás markdown básico cuando mejora la claridad.",
+};
+
+const PHASE_PROMPT = {
+  discovery:   q => `Analizá las respuestas de discovery del cliente:\n\n${formatQuestionnaire(q)}\n\nGenerá un análisis que incluya: claridad del problema definido, perfil del usuario y su dolor principal, oportunidades y riesgos detectados, preguntas críticas que quedan sin responder, y recomendación concreta para avanzar al Brief. Máximo 350 palabras.`,
+  brief:       q => `Evaluá el brief del cliente:\n\n${formatQuestionnaire(q)}\n\nGenerá un análisis que incluya: claridad de objetivos, completitud de requisitos funcionales, qué falta definir antes de diseñar, riesgos de scope identificados, y priorización MVP sugerida (must have / nice to have). Máximo 350 palabras.`,
+  design:      q => `Evaluá los requerimientos de diseño del cliente:\n\n${formatQuestionnaire(q)}\n\nGenerá un análisis que incluya: análisis del tono y marca, complejidad de los flujos principales, riesgos UX identificados, decisiones que necesitan validación, y recomendación sobre por dónde arrancar. Máximo 350 palabras.`,
+  development: q => `Evaluá los requerimientos técnicos del cliente:\n\n${formatQuestionnaire(q)}\n\nGenerá un análisis que incluya: viabilidad técnica del producto, integraciones y dependencias externas, riesgos técnicos principales, decisiones de arquitectura clave, y estimación de complejidad (baja/media/alta) con justificación. Máximo 350 palabras.`,
+  testing:     q => `Planificá el testing basándote en las respuestas del cliente:\n\n${formatQuestionnaire(q)}\n\nGenerá un análisis que incluya: escenarios críticos de prueba, riesgos de calidad más importantes, estrategia de testing recomendada, criterios de aceptación sugeridos, y condiciones para aprobar el lanzamiento. Máximo 350 palabras.`,
+  launch:      q => `Evaluá la preparación del lanzamiento:\n\n${formatQuestionnaire(q)}\n\nGenerá un análisis que incluya: evaluación de la preparación, canales de comunicación identificados, métricas de éxito a monitorear post-lanzamiento, riesgos del lanzamiento, y plan de acción para las primeras 2 semanas. Máximo 350 palabras.`,
+};
 
 const PHASE_LABELS = {
   discovery:   "Discovery",
@@ -54,8 +117,9 @@ router.get("/user/projects/:id/phases", authMiddleware, async (req, res) => {
         label:         PHASE_LABELS[phase],
         status:        row?.status       || "pending",
         questionnaire: parseQuestionnaire(row?.questionnaire),
+        ai_output:     row?.ai_output    || null,
         completed_at:  row?.completed_at || null,
-        // admin_notes y ai_output no se exponen al cliente
+        // admin_notes no se expone al cliente
       };
     });
 
@@ -97,6 +161,47 @@ router.patch("/user/projects/:id/phases/:phase", authMiddleware, async (req, res
     }
 
     return res.json({ success: true, phase: row });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /api/user/projects/:id/phases/:phase/ai — cliente dispara análisis IA
+router.post("/user/projects/:id/phases/:phase/ai", authMiddleware, phaseAiLimiter, async (req, res) => {
+  try {
+    const { id, phase } = req.params;
+    if (!VALID_PHASES.includes(phase)) {
+      return res.status(400).json({ success: false, message: "Fase inválida" });
+    }
+
+    const hasAccess = await assertProjectAccess(req.user.sub, id);
+    if (!hasAccess) return res.status(403).json({ success: false, message: "Sin acceso" });
+
+    const phaseRow     = await findPhaseRow(id, phase);
+    const questionnaire = parseQuestionnaire(phaseRow?.questionnaire);
+
+    const hasContent = Object.values(questionnaire).some(v => String(v || "").trim().length > 10);
+    if (!hasContent) {
+      return res.status(400).json({ success: false, message: "Completá al menos una pregunta antes de analizar" });
+    }
+
+    const output = await callClaude(PHASE_SYSTEM[phase], PHASE_PROMPT[phase](questionnaire));
+
+    // Persistir output en la fase para que el admin también lo vea
+    if (phaseRow) {
+      await db.update("project_phases", phaseRow.id || phaseRow.nocodb_id, { ai_output: output });
+    } else {
+      await db.insert("project_phases", {
+        project_id: Number(id),
+        phase,
+        status:     "in_progress",
+        ai_output:  output,
+      });
+    }
+
+    await db.logActivity(req.user.sub, "ai_analysis", "project_phase", id, `IA analizó fase: ${phase}`);
+
+    return res.json({ success: true, output });
   } catch (err) {
     return res.status(500).json({ success: false, message: err.message });
   }

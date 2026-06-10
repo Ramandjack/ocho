@@ -96,19 +96,26 @@ export default function WorkspaceView() {
   const { id }   = useParams();
   const { user } = useOutletContext();
 
-  const [project,  setProject]  = useState(null);
-  const [phases,   setPhases]   = useState([]);
-  const [tasks,    setTasks]    = useState([]);
-  const [messages, setMessages] = useState([]);
-  const [score,    setScore]    = useState(null);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState(null);
+  const [project,      setProject]      = useState(null);
+  const [phases,       setPhases]       = useState([]);
+  const [tasks,        setTasks]        = useState([]);
+  const [messages,     setMessages]     = useState([]);
+  const [score,        setScore]        = useState(null);
+  const [deliverables, setDeliverables] = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
 
   const [activePhaseId,  setActivePhaseId]  = useState(null);
   const [questionnaire,  setQuestionnaire]  = useState({});
   const [saving,         setSaving]         = useState(false);
   const [saved,          setSaved]          = useState(false);
   const saveTimerRef = useRef(null);
+
+  const [aiOutput,  setAiOutput]  = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError,   setAiError]   = useState(null);
+
+  const [expandedDeliverable, setExpandedDeliverable] = useState(null);
 
   const [msgText,  setMsgText]  = useState("");
   const [sending,  setSending]  = useState(false);
@@ -123,7 +130,8 @@ export default function WorkspaceView() {
       apiFetch(`/api/user/projects/${id}/phases`),
       apiFetch(`/api/user/projects/${id}/messages`),
       apiFetch(`/api/user/projects/${id}/score`),
-    ]).then(([projR, phasesR, msgsR, scoreR]) => {
+      apiFetch(`/api/user/projects/${id}/deliverables`),
+    ]).then(([projR, phasesR, msgsR, scoreR, delivR]) => {
       if (projR.status === "rejected") {
         setError(projR.reason?.message || "Error cargando el proyecto");
         return;
@@ -136,11 +144,13 @@ export default function WorkspaceView() {
       setPhases(phasesData);
       setMessages(msgsR.status === "fulfilled" ? (msgsR.value?.messages ?? []) : []);
       setScore(scoreR.status === "fulfilled" ? scoreR.value?.score : null);
+      setDeliverables(delivR.status === "fulfilled" ? (delivR.value?.deliverables ?? []) : []);
 
       const currentPhase = proj?.current_phase || "discovery";
       setActivePhaseId(currentPhase);
       const active = phasesData.find(p => p.phase === currentPhase);
       setQuestionnaire(active?.questionnaire || {});
+      setAiOutput(active?.ai_output || null);
     })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
@@ -155,7 +165,27 @@ export default function WorkspaceView() {
     setActivePhaseId(phaseId);
     const phaseData = phases.find(p => p.phase === phaseId);
     setQuestionnaire(phaseData?.questionnaire || {});
+    setAiOutput(phaseData?.ai_output || null);
+    setAiError(null);
     setSaved(false);
+  }
+
+  async function runAiAnalysis() {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const res = await apiFetch(`/api/user/projects/${id}/phases/${activePhaseId}/ai`, {
+        method: "POST",
+      });
+      setAiOutput(res.output);
+      setPhases(prev => prev.map(p =>
+        p.phase === activePhaseId ? { ...p, ai_output: res.output } : p
+      ));
+    } catch (err) {
+      setAiError(err.message || "Error al generar el análisis");
+    } finally {
+      setAiLoading(false);
+    }
   }
 
   function handleQuestionnaireChange(key, value) {
@@ -360,6 +390,46 @@ export default function WorkspaceView() {
               </div>
             )}
 
+            {/* AI Analysis block */}
+            {isEditable && (
+              <div className="pw-ai-block">
+                <div className="pw-ai-block-head">
+                  <span className="pw-meta-title">Análisis IA</span>
+                  <button
+                    className="pw-ai-btn"
+                    onClick={runAiAnalysis}
+                    disabled={aiLoading || !Object.values(questionnaire).some(v => String(v || "").trim().length > 10)}
+                  >
+                    {aiLoading ? (
+                      <span className="pw-ai-dots">
+                        <span /><span /><span />
+                      </span>
+                    ) : aiOutput ? "Regenerar análisis" : "✦ Analizar con IA"}
+                  </button>
+                </div>
+
+                {aiError && <p className="pw-ai-error">{aiError}</p>}
+
+                {aiLoading && (
+                  <div className="pw-ai-loading">
+                    <span className="pw-ai-shimmer" />
+                    <span className="pw-ai-shimmer" style={{ width: "75%" }} />
+                    <span className="pw-ai-shimmer" style={{ width: "55%" }} />
+                  </div>
+                )}
+
+                {aiOutput && !aiLoading && (
+                  <div className="pw-ai-output">
+                    {aiOutput.split("\n").map((line, i) => {
+                      if (!line.trim()) return null;
+                      const bold = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+                      return <p key={i} dangerouslySetInnerHTML={{ __html: bold }} />;
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* What OCHO does */}
             {meta.ocho_does && (
               <div className="pw-phase-meta">
@@ -470,6 +540,57 @@ export default function WorkspaceView() {
 
         </div>
       </div>
+
+      {/* ── Entregables ────────────────────────────────── */}
+      {deliverables.length > 0 && (
+        <div className="pw-deliverables">
+          <div className="pw-card-head" style={{ marginBottom: "0.75rem" }}>
+            <span className="pw-card-title">Entregables</span>
+            <span className="pw-deliverables-count">{deliverables.length}</span>
+          </div>
+          <div className="pw-deliv-grid">
+            {deliverables.map(d => {
+              const dId       = d.id || d.nocodb_id;
+              const isExpanded = expandedDeliverable === dId;
+              return (
+                <div key={dId} className={`pw-deliv-card${isExpanded ? " expanded" : ""}`}>
+                  <button
+                    className="pw-deliv-head"
+                    onClick={() => setExpandedDeliverable(isExpanded ? null : dId)}
+                  >
+                    <div className="pw-deliv-head-left">
+                      <span className="pw-deliv-phase">{d.phase}</span>
+                      <span className="pw-deliv-title">{d.title}</span>
+                    </div>
+                    <div className="pw-deliv-head-right">
+                      {d.version > 1 && (
+                        <span className="pw-deliv-version">v{d.version}</span>
+                      )}
+                      <span className="pw-deliv-arrow">{isExpanded ? "↑" : "↓"}</span>
+                    </div>
+                  </button>
+
+                  {isExpanded && d.content && (
+                    <div className="pw-deliv-body">
+                      {d.content.split("\n").map((line, i) => {
+                        if (!line.trim()) return <br key={i} />;
+                        const bold = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+                        return <p key={i} dangerouslySetInnerHTML={{ __html: bold }} />;
+                      })}
+                    </div>
+                  )}
+
+                  {isExpanded && !d.content && (
+                    <div className="pw-deliv-body">
+                      <p className="pw-deliv-empty-content">El contenido está siendo preparado por el equipo.</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Conversación del Producto ──────────────────── */}
       <div className="canvas-panel pw-convo">

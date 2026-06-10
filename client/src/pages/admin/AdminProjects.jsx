@@ -220,13 +220,13 @@ export default function AdminProjects() {
         )}
       </section>
 
-      {form && (
+      {form && !form.id && (
         <section className="admin-full">
           <article className="admin-card">
-            <h2>{form.id ? "Editar proyecto" : "Nuevo proyecto"}</h2>
+            <h2>Nuevo proyecto</h2>
             <form onSubmit={saveProject} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               <div className="admin-controls">
-                <input className="admin-control" style={{ flex: 1 }} placeholder="Título *" value={form.title} onChange={e => setF("title", e.target.value)} required />
+                <input className="admin-control" style={{ flex: 1 }} placeholder="Título *" value={form.title} onChange={e => setF("title", e.target.value)} required autoFocus />
                 <select className="admin-control" value={form.type} onChange={e => setF("type", e.target.value)}>
                   {TYPE_OPTIONS.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
                 </select>
@@ -237,12 +237,40 @@ export default function AdminProjects() {
               </div>
               <input className="admin-control" placeholder="Descripción (opcional)" value={form.description || ""} onChange={e => setF("description", e.target.value)} />
               <div style={{ display: "flex", gap: 8 }}>
-                <button type="submit" className="admin-btn primary" disabled={saving}>{saving ? "Guardando…" : form.id ? "Guardar cambios" : "Crear proyecto"}</button>
+                <button type="submit" className="admin-btn primary" disabled={saving}>{saving ? "Guardando…" : "Crear proyecto"}</button>
                 <button type="button" className="admin-btn" onClick={() => setForm(null)}>Cancelar</button>
               </div>
             </form>
           </article>
         </section>
+      )}
+
+      {form?.id && (
+        <div className="admin-modal-overlay" role="dialog" aria-modal="true" onClick={e => e.target === e.currentTarget && setForm(null)}>
+          <div className="admin-card admin-modal-card modal-inner" style={{ maxWidth: 520, width: "95vw" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2 style={{ margin: 0 }}>Editar proyecto</h2>
+              <button type="button" className="admin-modal-close" onClick={() => setForm(null)}>✕</button>
+            </div>
+            <form onSubmit={saveProject} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <input className="admin-control" placeholder="Título *" value={form.title} onChange={e => setF("title", e.target.value)} required autoFocus />
+              <input className="admin-control" placeholder="Descripción (opcional)" value={form.description || ""} onChange={e => setF("description", e.target.value)} />
+              <div className="admin-controls">
+                <select className="admin-control" value={form.type} onChange={e => setF("type", e.target.value)}>
+                  {TYPE_OPTIONS.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                </select>
+                <select className="admin-control" value={form.status} onChange={e => setF("status", e.target.value)}>
+                  {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABEL[s]}</option>)}
+                </select>
+                <input className="admin-control" type="date" value={form.due_date || ""} onChange={e => setF("due_date", e.target.value)} />
+              </div>
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+                <button type="button" className="admin-btn" onClick={() => setForm(null)}>Cancelar</button>
+                <button type="submit" className="admin-btn primary" disabled={saving}>{saving ? "Guardando…" : "Guardar cambios"}</button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <section className="admin-full">

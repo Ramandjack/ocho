@@ -13,18 +13,21 @@ const NOCODB_BASE = process.env.NOCODB_BASE;
 const NOCODB_HOST = (process.env.NOCODB_HOST || "https://app.nocodb.com/api/v3/data").replace(/\/$/, "");
 
 const TABLE_IDS = {
-  users:            process.env.NOCODB_USERS_TABLE,
-  leads:            process.env.NOCODB_LEADS_TABLE,
-  projects:         process.env.NOCODB_PROJECTS_TABLE,
-  user_projects:    process.env.NOCODB_USER_PROJECTS_TABLE,
-  tasks:            process.env.NOCODB_TASKS_TABLE,
-  notifications:    process.env.NOCODB_NOTIFICATIONS_TABLE,
-  modules:          process.env.NOCODB_MODULES_TABLE,
-  user_modules:     process.env.NOCODB_USER_MODULES_TABLE,
-  activity_log:     process.env.NOCODB_ACTIVITY_LOG_TABLE,
-  resources:        process.env.NOCODB_RESOURCES_TABLE,
-  content:          process.env.NOCODB_CONTENT_TABLE,
-  project_messages: process.env.NOCODB_PROJECT_MESSAGES_TABLE,
+  users:                 process.env.NOCODB_USERS_TABLE,
+  leads:                 process.env.NOCODB_LEADS_TABLE,
+  projects:              process.env.NOCODB_PROJECTS_TABLE,
+  user_projects:         process.env.NOCODB_USER_PROJECTS_TABLE,
+  tasks:                 process.env.NOCODB_TASKS_TABLE,
+  notifications:         process.env.NOCODB_NOTIFICATIONS_TABLE,
+  modules:               process.env.NOCODB_MODULES_TABLE,
+  user_modules:          process.env.NOCODB_USER_MODULES_TABLE,
+  activity_log:          process.env.NOCODB_ACTIVITY_LOG_TABLE,
+  resources:             process.env.NOCODB_RESOURCES_TABLE,
+  content:               process.env.NOCODB_CONTENT_TABLE,
+  project_messages:      process.env.NOCODB_PROJECT_MESSAGES_TABLE,
+  project_phases:        process.env.NOCODB_PROJECT_PHASES_TABLE,
+  project_deliverables:  process.env.NOCODB_PROJECT_DELIVERABLES_TABLE,
+  project_score:         process.env.NOCODB_PROJECT_SCORE_TABLE,
 };
 
 /* ===========================
@@ -109,17 +112,20 @@ function extractList(result) {
 const CACHE_TTL_MS = 30 * 60_000; // 30 min default
 
 const TABLE_TTL = {
-  content:          30 * 60_000,
-  modules:          30 * 60_000,
-  user_modules:     30 * 60_000,
-  users:            30 * 60_000,
-  projects:         30 * 60_000,
-  tasks:            30 * 60_000,
-  leads:            30 * 60_000,
-  activity_log:     30 * 60_000,
-  user_projects:    30 * 60_000,
-  notifications:    30 * 60_000,
-  resources:        30 * 60_000,
+  content:               30 * 60_000,
+  modules:               30 * 60_000,
+  user_modules:          30 * 60_000,
+  users:                 30 * 60_000,
+  projects:              30 * 60_000,
+  tasks:                 30 * 60_000,
+  leads:                 30 * 60_000,
+  activity_log:          30 * 60_000,
+  user_projects:         30 * 60_000,
+  notifications:         30 * 60_000,
+  resources:             30 * 60_000,
+  project_phases:        30 * 60_000,
+  project_deliverables:  30 * 60_000,
+  project_score:         30 * 60_000,
 };
 
 const _cache    = new Map();
@@ -299,6 +305,7 @@ async function warmCache() {
     "users", "projects", "tasks", "content", "modules",
     "user_modules", "leads", "activity_log",
     "user_projects", "notifications", "resources",
+    "project_phases", "project_deliverables", "project_score",
   ].filter(t => TABLE_IDS[t]);
 
   for (let i = 0; i < tables.length; i += 2) {

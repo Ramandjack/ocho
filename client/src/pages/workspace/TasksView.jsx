@@ -47,6 +47,9 @@ const STATUS_FILTER_LABEL = {
   done:        "Completadas",
 };
 
+// NocoDB puede devolver el campo como "title" o "Title" según cómo se llame la columna
+const pTitle = p => p?.title || p?.Title || p?.name || "";
+
 /* ── TaskForm ───────────────────────────────────────────────── */
 
 function TaskForm({ projects, initial = {}, onSuccess, onClose, isAdmin = false, userUuid = null }) {
@@ -149,7 +152,7 @@ function TaskForm({ projects, initial = {}, onSuccess, onClose, isAdmin = false,
               onChange={e => setProjectId(e.target.value)} disabled={saving}>
               <option value="">Sin proyecto</option>
               {projects.map(p => (
-                <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{p.title}</option>
+                <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{pTitle(p)}</option>
               ))}
             </select>
           )}
@@ -279,7 +282,7 @@ function AiGenerator({ projects, onCreated, onClose, show }) {
                 onChange={e => setProjectId(e.target.value)} disabled={loading} required>
                 <option value="">Seleccioná un proyecto *</option>
                 {projects.map(p => (
-                  <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{p.title}</option>
+                  <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{pTitle(p)}</option>
                 ))}
               </select>
               <select className="task-form-select" value={phase}
@@ -379,7 +382,7 @@ function KanbanColumn({ col, tasks, projectMap, onMoveTask, onStatusChange, onEd
           <TaskCard
             key={task.nocodb_id ?? task.id}
             task={task}
-            projectName={projectMap[String(task.project_id)]?.title ?? null}
+            projectName={pTitle(projectMap[String(task.project_id)]) || task.project_title || null}
             compact={true}
             draggable={true}
             onStatusChange={onStatusChange}
@@ -638,7 +641,7 @@ export default function TasksView() {
             >
               <option value="">Todos los proyectos</option>
               {projects.map(p => (
-                <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{p.title}</option>
+                <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{pTitle(p)}</option>
               ))}
             </select>
           )}
@@ -697,7 +700,7 @@ export default function TasksView() {
               <TaskCard
                 key={task.nocodb_id ?? task.id}
                 task={task}
-                projectName={projectMap[String(task.project_id)]?.title ?? null}
+                projectName={pTitle(projectMap[String(task.project_id)]) || task.project_title || null}
                 compact={false}
                 {...commonCardProps}
               />

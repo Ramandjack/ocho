@@ -49,7 +49,7 @@ const STATUS_FILTER_LABEL = {
 
 /* ── TaskForm ───────────────────────────────────────────────── */
 
-function TaskForm({ projects, initial = {}, onSuccess, onClose }) {
+function TaskForm({ projects, initial = {}, onSuccess, onClose, isAdmin = false, userUuid = null }) {
   const isEdit = Boolean(initial.nocodb_id ?? initial.id);
   const taskId = initial.nocodb_id ?? initial.id;
 
@@ -98,9 +98,16 @@ function TaskForm({ projects, initial = {}, onSuccess, onClose }) {
         label:       label || null,
       };
       if (isEdit) {
-        await apiFetch(`/api/admin/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify(body) });
+        const url = isAdmin
+          ? `/api/admin/tasks/${taskId}`
+          : `/api/user/tasks/${taskId}`;
+        await apiFetch(url, { method: "PATCH", body: JSON.stringify(body) });
       } else {
-        await apiFetch("/api/admin/tasks", { method: "POST", body: JSON.stringify({ ...body, status: "pending" }) });
+        const url  = isAdmin ? "/api/admin/tasks" : "/api/user/tasks";
+        const data = isAdmin
+          ? { ...body, status: "pending" }
+          : { ...body, status: "pending", assigned_to: userUuid };
+        await apiFetch(url, { method: "POST", body: JSON.stringify(data) });
       }
       onSuccess();
     } catch (err) {
@@ -187,6 +194,156 @@ function TaskForm({ projects, initial = {}, onSuccess, onClose }) {
   );
 }
 
+/* ── AiGenerator ────────────────────────────────────────────── */
+
+const AI_COUNT_OPTIONS = [3, 5, 6, 8, 10];
+
+function AiGenerator({ projects, onCreated, onClose, show }) {
+  const [projectId, setProjectId] = useState(projects[0] ? String(projects[0].nocodb_id ?? projects[0].id) : "");
+  const [phase,     setPhase]     = useState("discovery");
+  const [count,     setCount]     = useState(6);
+  const [loading,   setLoading]   = useState(false);
+  const [preview,   setPreview]   = useState(null);    // array de suggestions
+  const [selected,  setSelected]  = useState(new Set());
+  const [creating,  setCreating]  = useState(false);
+
+  // Auto-set phase from project's current_phase
+  useEffect(() => {
+    if (projectId) {
+      const proj = projects.find(p => String(p.nocodb_id ?? p.id) === projectId);
+      if (proj?.current_phase) setPhase(proj.current_phase);
+    }
+  }, [projectId]);
+
+  async function generate(e) {
+    e.preventDefault();
+    if (!projectId) return;
+    setLoading(true);
+    setPreview(null);
+    try {
+      const res = await apiFetch(`/api/admin/projects/${projectId}/tasks/ai`, {
+        method: "POST",
+        body:   JSON.stringify({ phase, count }),
+      });
+      setPreview(res.tasks ?? []);
+      setSelected(new Set((res.tasks ?? []).map((_, i) => i)));
+    } catch (err) {
+      show(err.message, "danger");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function toggleSelect(i) {
+    setSelected(prev => {
+      const next = new Set(prev);
+      next.has(i) ? next.delete(i) : next.add(i);
+      return next;
+    });
+  }
+
+  async function createSelected() {
+    const tasks = preview.filter((_, i) => selected.has(i));
+    if (!tasks.length) return;
+    setCreating(true);
+    try {
+      const res = await apiFetch("/api/admin/tasks/bulk", {
+        method: "POST",
+        body:   JSON.stringify({ tasks, project_id: Number(projectId), phase }),
+      });
+      show(`${res.count} tareas creadas`, "success");
+      onCreated();
+    } catch (err) {
+      show(err.message, "danger");
+    } finally {
+      setCreating(false);
+    }
+  }
+
+  return (
+    <div className="admin-modal-overlay" role="dialog" aria-modal="true"
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="ai-gen-modal">
+        <div className="ai-gen-header">
+          <div>
+            <span className="ai-gen-title">✦ Generar tareas con IA</span>
+            {preview && <span className="ai-gen-sub">{preview.length} sugerencias · seleccioná las que querés crear</span>}
+          </div>
+          <button className="task-form-close" onClick={onClose} type="button">✕</button>
+        </div>
+
+        {!preview ? (
+          <form className="ai-gen-form" onSubmit={generate}>
+            <div className="task-form-row">
+              <select className="task-form-select" value={projectId}
+                onChange={e => setProjectId(e.target.value)} disabled={loading} required>
+                <option value="">Seleccioná un proyecto *</option>
+                {projects.map(p => (
+                  <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{p.title}</option>
+                ))}
+              </select>
+              <select className="task-form-select" value={phase}
+                onChange={e => setPhase(e.target.value)} disabled={loading}>
+                {PHASE_ORDER.map(ph => (
+                  <option key={ph} value={ph}>{PHASE_LABEL[ph]}</option>
+                ))}
+              </select>
+              <select className="task-form-select" value={count}
+                onChange={e => setCount(Number(e.target.value))} disabled={loading}
+                style={{ maxWidth: "7rem" }}>
+                {AI_COUNT_OPTIONS.map(n => (
+                  <option key={n} value={n}>{n} tareas</option>
+                ))}
+              </select>
+            </div>
+            <div className="task-form-footer" style={{ marginTop: 8 }}>
+              <span className="task-form-hint">Claude Haiku analiza el proyecto y genera tareas accionables.</span>
+              <button type="submit" className="task-form-save" disabled={loading || !projectId}>
+                {loading ? (
+                  <span className="ai-gen-loading">
+                    <span className="pw-ai-dot" /><span className="pw-ai-dot" /><span className="pw-ai-dot" />
+                    Generando…
+                  </span>
+                ) : "Generar"}
+              </button>
+            </div>
+          </form>
+        ) : (
+          <div className="ai-gen-preview">
+            <div className="ai-gen-preview-list">
+              {preview.map((t, i) => (
+                <label key={i} className={`ai-gen-item${selected.has(i) ? " selected" : ""}`}>
+                  <input type="checkbox" checked={selected.has(i)}
+                    onChange={() => toggleSelect(i)} />
+                  <div className="ai-gen-item-body">
+                    <div className="ai-gen-item-top">
+                      <span className="ai-gen-item-title">{t.title}</span>
+                      <span className="tc-prio high" style={{ textTransform: "none", fontSize: "0.65rem" }}>
+                        {t.priority === "high" ? "Alta" : t.priority === "low" ? "Baja" : "Media"}
+                      </span>
+                      {t.label && <span className="tc-label">{t.label}</span>}
+                    </div>
+                    {t.description && <p className="ai-gen-item-desc">{t.description}</p>}
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="ai-gen-preview-footer">
+              <button className="task-form-cancel" onClick={() => setPreview(null)} disabled={creating}>
+                ← Regenerar
+              </button>
+              <button className="task-form-save" disabled={creating || selected.size === 0}
+                onClick={createSelected}>
+                {creating ? "Creando…" : `Crear ${selected.size} tarea${selected.size !== 1 ? "s" : ""}`}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /* ── KanbanColumn ───────────────────────────────────────────── */
 
 function KanbanColumn({ col, tasks, projectMap, onMoveTask, onStatusChange, onEdit, onDelete, onQuickAdd }) {
@@ -257,6 +414,7 @@ export default function TasksView() {
   const [adding,        setAdding]        = useState(false);
   const [editingTask,   setEditingTask]   = useState(null);
   const [deletingId,    setDeletingId]    = useState(null);
+  const [aiOpen,        setAiOpen]        = useState(false);
 
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
 
@@ -350,9 +508,14 @@ export default function TasksView() {
 
   const showForm = adding || Boolean(editingTask);
 
+  const userUuid = user?.uuid ?? user?.sub ?? null;
+
   const commonCardProps = {
     onStatusChange: cycleStatus,
-    onEdit:   isAdmin ? task => setEditingTask(task) : null,
+    // Todos pueden editar sus propias tareas; admin puede editar cualquiera
+    onEdit: task => {
+      if (isAdmin || task.assigned_to === userUuid) setEditingTask(task);
+    },
     onDelete: isAdmin ? taskId => setDeletingId(taskId) : null,
   };
 
@@ -411,9 +574,15 @@ export default function TasksView() {
               </button>
             </div>
 
-            {isAdmin && !showForm && (
+            {!showForm && (
               <button className="projects-add-btn" onClick={() => setAdding(true)}>
                 + Nueva
+              </button>
+            )}
+            {isAdmin && !showForm && (
+              <button className="ai-gen-trigger-btn" onClick={() => setAiOpen(true)}
+                title="Generar tareas con IA">
+                ✦ IA
               </button>
             )}
           </div>
@@ -425,8 +594,24 @@ export default function TasksView() {
         <TaskForm
           projects={projects}
           initial={editingTask || {}}
+          isAdmin={isAdmin}
+          userUuid={userUuid}
           onSuccess={handleSuccess}
           onClose={() => { setAdding(false); setEditingTask(null); }}
+        />
+      )}
+
+      {aiOpen && (
+        <AiGenerator
+          projects={projects}
+          show={show}
+          onCreated={async () => {
+            setAiOpen(false);
+            setRefreshing(true);
+            await fetchTasks();
+            setRefreshing(false);
+          }}
+          onClose={() => setAiOpen(false)}
         />
       )}
 

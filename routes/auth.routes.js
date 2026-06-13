@@ -165,6 +165,58 @@ router.get("/me", authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH /api/user/profile — actualizar datos personales
+router.patch("/user/profile", authMiddleware, async (req, res) => {
+  try {
+    const ALLOWED = ["first_name", "last_name", "city", "country", "phone", "company", "role_title", "profile"];
+    const fields  = {};
+    for (const k of ALLOWED) {
+      if (req.body[k] !== undefined) fields[k] = String(req.body[k] || "").trim();
+    }
+    if (!Object.keys(fields).length) {
+      return res.status(400).json({ success: false, message: "Sin campos para actualizar" });
+    }
+
+    if (fields.first_name !== undefined || fields.last_name !== undefined) {
+      const users   = await getAllUsers();
+      const current = users.find(u => u.uuid === req.user.sub) || {};
+      fields.full_name = `${fields.first_name ?? current.first_name ?? ""} ${fields.last_name ?? current.last_name ?? ""}`.trim();
+    }
+
+    await updateUserFieldInNoco(req.user.sub, fields);
+    return res.json({ success: true, fields });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PATCH /api/user/password — cambiar contraseña
+router.patch("/user/password", authMiddleware, async (req, res) => {
+  try {
+    const { current_password, new_password } = req.body || {};
+    if (!current_password || !new_password) {
+      return res.status(400).json({ success: false, message: "Faltan campos obligatorios" });
+    }
+    if (String(new_password).length < 8) {
+      return res.status(400).json({ success: false, message: "La nueva contraseña debe tener al menos 8 caracteres" });
+    }
+
+    const users = await getAllUsers();
+    const user  = users.find(u => u.uuid === req.user.sub);
+    if (!user) return res.status(404).json({ success: false, message: "Usuario no encontrado" });
+
+    const hash  = user.password_hash || user.passwordHash;
+    const valid = await bcrypt.compare(String(current_password), hash);
+    if (!valid) return res.status(401).json({ success: false, message: "La contraseña actual es incorrecta" });
+
+    const new_hash = await bcrypt.hash(String(new_password), 10);
+    await updateUserFieldInNoco(req.user.sub, { password_hash: new_hash });
+    return res.json({ success: true, message: "Contraseña actualizada" });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.post("/logout", (_req, res) => {
   clearAuthCookie(res);
   clearCsrfCookie(res);

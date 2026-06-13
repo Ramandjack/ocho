@@ -17,6 +17,7 @@ import ResourcesView        from "./pages/workspace/ResourcesView.jsx";
 import AIView               from "./pages/workspace/AIView.jsx";
 import ContentView          from "./pages/workspace/ContentView.jsx";
 import WorkspaceFocusView   from "./pages/workspace/WorkspaceFocusView.jsx";
+import ProfileView          from "./pages/workspace/ProfileView.jsx";
 
 // Admin
 import AdminLayout          from "./pages/admin/AdminLayout.jsx";
@@ -47,6 +48,7 @@ export default function App() {
         <Route path="resources"      element={<ResourcesView />} />
         <Route path="ai"             element={<AIView />} />
         <Route path="workspace"      element={<WorkspaceFocusView />} />
+        <Route path="profile"        element={<ProfileView />} />
       </Route>
 
       {/* Admin console */}

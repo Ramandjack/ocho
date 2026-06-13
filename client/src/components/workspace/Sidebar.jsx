@@ -62,10 +62,10 @@ export default function Sidebar({ user, unread = 0 }) {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-user">
+        <Link to="/panel/profile" className="sidebar-user">
           <span className="sidebar-user-name">{name}</span>
           <span className="sidebar-user-role">{role === "admin" ? "Admin" : "Miembro"}</span>
-        </div>
+        </Link>
 
         {role === "admin" && (
           <Link to="/admin" className="sidebar-link dim">

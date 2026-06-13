@@ -423,9 +423,10 @@ export default function TasksView() {
   );
 
   useEffect(() => {
+    const projectsEndpoint = isAdmin ? "/api/admin/projects" : "/api/user/projects";
     Promise.all([
       apiFetch("/api/user/tasks"),
-      apiFetch("/api/user/projects"),
+      apiFetch(projectsEndpoint),
     ])
       .then(([tRes, pRes]) => {
         setTasks(tRes.tasks ?? []);

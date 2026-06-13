@@ -1,18 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { apiFetch } from "../../lib/api.js";
+import TaskCard from "./TaskCard.jsx";
 
-const STATUS_LABEL = {
-  pending:     "pendiente",
-  in_progress: "en curso",
-  done:        "completado",
-};
-
-const STATUS_ICON = {
-  pending:     "○",
-  in_progress: "◑",
-  done:        "●",
-};
+/* ── Constants ──────────────────────────────────────────────── */
 
 const NEXT_STATUS = {
   pending:     "in_progress",
@@ -20,23 +11,59 @@ const NEXT_STATUS = {
   done:        "pending",
 };
 
-const FILTER_LABEL = {
+const PHASE_ORDER = ["discovery", "brief", "design", "development", "testing", "launch"];
+const PHASE_LABEL = {
+  discovery:   "Discovery",
+  brief:       "Brief",
+  design:      "Diseño",
+  development: "Desarrollo",
+  testing:     "Testing",
+  launch:      "Lanzamiento",
+};
+
+const PRIORITY_OPTIONS = ["low", "medium", "high"];
+const PRIORITY_LABEL   = { low: "Baja", medium: "Media", high: "Alta" };
+
+const LABEL_OPTIONS = [
+  { value: "ux",            label: "UX" },
+  { value: "research",      label: "Research" },
+  { value: "dev",           label: "Dev" },
+  { value: "qa",            label: "QA" },
+  { value: "design-system", label: "Design System" },
+  { value: "docs",          label: "Docs" },
+  { value: "ops",           label: "Ops" },
+];
+
+const KANBAN_COLS = [
+  { status: "pending",     label: "Pendiente" },
+  { status: "in_progress", label: "En curso" },
+  { status: "done",        label: "Completado" },
+];
+
+const STATUS_FILTER_LABEL = {
   all:         "Todas",
   pending:     "Pendientes",
   in_progress: "En curso",
   done:        "Completadas",
 };
 
-const PRIORITY_OPTIONS = ["low", "medium", "high"];
-const PRIORITY_LABEL   = { low: "Baja", medium: "Media", high: "Alta" };
+/* ── TaskForm ───────────────────────────────────────────────── */
 
-function NewTaskForm({ projects, userUuid, onSuccess, onClose }) {
-  const [title, setTitle]       = useState("");
-  const [priority, setPriority] = useState("medium");
-  const [dueDate, setDueDate]   = useState("");
-  const [projectId, setProjectId] = useState(projects[0]?.nocodb_id ?? projects[0]?.id ?? "");
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState(null);
+function TaskForm({ projects, initial = {}, onSuccess, onClose }) {
+  const isEdit = Boolean(initial.nocodb_id ?? initial.id);
+  const taskId = initial.nocodb_id ?? initial.id;
+
+  const [title,       setTitle]       = useState(initial.title       || "");
+  const [description, setDescription] = useState(initial.description || "");
+  const [priority,    setPriority]    = useState(initial.priority    || "medium");
+  const [dueDate,     setDueDate]     = useState(initial.due_date    || "");
+  const [projectId,   setProjectId]   = useState(
+    initial.project_id ? String(initial.project_id) : (projects[0] ? String(projects[0].nocodb_id ?? projects[0].id) : "")
+  );
+  const [phase,  setPhase]  = useState(initial.phase || "");
+  const [label,  setLabel]  = useState(initial.label || "");
+  const [saving, setSaving] = useState(false);
+  const [error,  setError]  = useState(null);
   const titleRef = useRef(null);
 
   useEffect(() => { titleRef.current?.focus(); }, []);
@@ -47,23 +74,34 @@ function NewTaskForm({ projects, userUuid, onSuccess, onClose }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Auto-set phase from project's current_phase when project changes
+  useEffect(() => {
+    if (!initial.phase && projectId) {
+      const proj = projects.find(p => String(p.nocodb_id ?? p.id) === projectId);
+      if (proj?.current_phase) setPhase(proj.current_phase);
+    }
+  }, [projectId]);
+
   async function submit(e) {
     e.preventDefault();
     if (!title.trim()) { titleRef.current?.focus(); return; }
     setSaving(true);
     setError(null);
     try {
-      await apiFetch("/api/admin/tasks", {
-        method: "POST",
-        body: JSON.stringify({
-          title:       title.trim(),
-          priority,
-          due_date:    dueDate || null,
-          project_id:  projectId ? Number(projectId) : null,
-          assigned_to: userUuid,
-          status:      "pending",
-        }),
-      });
+      const body = {
+        title:       title.trim(),
+        description: description.trim(),
+        priority,
+        due_date:    dueDate || null,
+        project_id:  projectId ? Number(projectId) : null,
+        phase:       phase || null,
+        label:       label || null,
+      };
+      if (isEdit) {
+        await apiFetch(`/api/admin/tasks/${taskId}`, { method: "PATCH", body: JSON.stringify(body) });
+      } else {
+        await apiFetch("/api/admin/tasks", { method: "POST", body: JSON.stringify({ ...body, status: "pending" }) });
+      }
       onSuccess();
     } catch (err) {
       setError(err.message);
@@ -72,92 +110,159 @@ function NewTaskForm({ projects, userUuid, onSuccess, onClose }) {
   }
 
   return (
-    <form className="project-form" onSubmit={submit} noValidate>
-      <div className="project-form-row">
-        <div className="project-form-field" style={{ flex: 1 }}>
-          <input
-            ref={titleRef}
-            className="project-form-input"
-            placeholder="Título de la tarea"
-            value={title}
-            onChange={e => setTitle(e.target.value)}
-            disabled={saving}
-            autoComplete="off"
-          />
-        </div>
-        <select
-          className="project-form-select"
-          value={priority}
-          onChange={e => setPriority(e.target.value)}
-          disabled={saving}
-        >
-          {PRIORITY_OPTIONS.map(p => (
-            <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>
-          ))}
-        </select>
+    <div className="task-form-wrap">
+      <div className="task-form-header">
+        <span className="task-form-heading">{isEdit ? "Editar tarea" : "Nueva tarea"}</span>
+        <button className="task-form-close" onClick={onClose} type="button" aria-label="Cerrar">✕</button>
       </div>
 
-      <div className="project-form-row">
-        {projects.length > 0 && (
-          <select
-            className="project-form-select"
-            style={{ flex: 1 }}
-            value={projectId}
-            onChange={e => setProjectId(e.target.value)}
-            disabled={saving}
-          >
-            <option value="">Sin proyecto</option>
-            {projects.map(p => (
-              <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>
-                {p.title}
-              </option>
+      <form className="task-form" onSubmit={submit} noValidate>
+        <input
+          ref={titleRef}
+          className="task-form-input"
+          placeholder="Título de la tarea *"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          disabled={saving}
+          autoComplete="off"
+        />
+
+        <textarea
+          className="task-form-input task-form-textarea"
+          placeholder="Descripción, criterios de aceptación o links relevantes…"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          disabled={saving}
+          rows={3}
+        />
+
+        <div className="task-form-row">
+          {projects.length > 0 && (
+            <select className="task-form-select" value={projectId}
+              onChange={e => setProjectId(e.target.value)} disabled={saving}>
+              <option value="">Sin proyecto</option>
+              {projects.map(p => (
+                <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{p.title}</option>
+              ))}
+            </select>
+          )}
+          <select className="task-form-select" value={phase}
+            onChange={e => setPhase(e.target.value)} disabled={saving}>
+            <option value="">Sin fase</option>
+            {PHASE_ORDER.map(ph => (
+              <option key={ph} value={ph}>{PHASE_LABEL[ph]}</option>
             ))}
           </select>
-        )}
-        <input
-          className="project-form-input"
-          type="date"
-          value={dueDate}
-          onChange={e => setDueDate(e.target.value)}
-          disabled={saving}
-          style={{ flex: 1 }}
-        />
-      </div>
-
-      <div className="project-form-footer">
-        {error ? (
-          <span className="project-form-error">{error}</span>
-        ) : (
-          <span className="project-form-hint dim">Esc para cancelar</span>
-        )}
-        <div className="project-form-actions">
-          <button type="button" className="project-form-cancel" onClick={onClose} disabled={saving}>
-            Cancelar
-          </button>
-          <button type="submit" className="project-form-save" disabled={saving}>
-            {saving ? "Creando…" : "Crear tarea"}
-          </button>
         </div>
-      </div>
-    </form>
+
+        <div className="task-form-row">
+          <select className="task-form-select" value={priority}
+            onChange={e => setPriority(e.target.value)} disabled={saving}>
+            {PRIORITY_OPTIONS.map(p => <option key={p} value={p}>{PRIORITY_LABEL[p]}</option>)}
+          </select>
+          <input className="task-form-input" type="date"
+            value={dueDate} onChange={e => setDueDate(e.target.value)} disabled={saving} />
+          <select className="task-form-select" value={label}
+            onChange={e => setLabel(e.target.value)} disabled={saving}>
+            <option value="">Sin etiqueta</option>
+            {LABEL_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
+          </select>
+        </div>
+
+        {error && <p className="task-form-error">{error}</p>}
+
+        <div className="task-form-footer">
+          <span className="task-form-hint">Esc para cancelar</span>
+          <div className="task-form-actions">
+            <button type="button" className="task-form-cancel" onClick={onClose} disabled={saving}>
+              Cancelar
+            </button>
+            <button type="submit" className="task-form-save" disabled={saving}>
+              {saving ? "Guardando…" : isEdit ? "Guardar cambios" : "Crear tarea"}
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
   );
 }
 
+/* ── KanbanColumn ───────────────────────────────────────────── */
+
+function KanbanColumn({ col, tasks, projectMap, onMoveTask, onStatusChange, onEdit, onDelete, onQuickAdd }) {
+  const [dragOver, setDragOver] = useState(false);
+
+  function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOver(true);
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    setDragOver(false);
+    const taskId = e.dataTransfer.getData("taskId");
+    if (taskId) onMoveTask(taskId, col.status);
+  }
+
+  return (
+    <div
+      className={`kanban-col${dragOver ? " drag-over" : ""}`}
+      onDragOver={handleDragOver}
+      onDragLeave={() => setDragOver(false)}
+      onDrop={handleDrop}
+    >
+      <div className="kanban-col-head">
+        <span className="kanban-col-label">{col.label}</span>
+        <span className="kanban-col-count">{tasks.length}</span>
+      </div>
+
+      <div className="kanban-col-body">
+        {tasks.map(task => (
+          <TaskCard
+            key={task.nocodb_id ?? task.id}
+            task={task}
+            projectName={projectMap[String(task.project_id)]?.title ?? null}
+            compact={true}
+            draggable={true}
+            onStatusChange={onStatusChange}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+
+      {onQuickAdd && (
+        <button className="kanban-add-btn" onClick={onQuickAdd} type="button">
+          + Agregar
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── TasksView ──────────────────────────────────────────────── */
+
 export default function TasksView() {
-  const { user, show }        = useOutletContext();
-  const [tasks, setTasks]     = useState([]);
+  const { user, show }          = useOutletContext();
+  const [tasks,    setTasks]    = useState([]);
   const [projects, setProjects] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [filter, setFilter]   = useState("all");
-  const [adding, setAdding]   = useState(false);
+  const [loading,  setLoading]  = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const [view,          setView]          = useState(() => localStorage.getItem("ocho_tasks_view") || "list");
+  const [filterProject, setFilterProject] = useState("");
+  const [filterPhase,   setFilterPhase]   = useState("");
+  const [filterStatus,  setFilterStatus]  = useState("all");
+  const [adding,        setAdding]        = useState(false);
+  const [editingTask,   setEditingTask]   = useState(null);
+  const [deletingId,    setDeletingId]    = useState(null);
 
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
 
-  async function fetchTasks() {
-    const res = await apiFetch("/api/user/tasks");
-    setTasks(res.tasks ?? []);
-  }
+  const projectMap = Object.fromEntries(
+    projects.map(p => [String(p.nocodb_id ?? p.id), p])
+  );
 
   useEffect(() => {
     Promise.all([
@@ -172,149 +277,266 @@ export default function TasksView() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleTaskSuccess() {
+  function switchView(v) {
+    setView(v);
+    localStorage.setItem("ocho_tasks_view", v);
+  }
+
+  async function fetchTasks() {
+    const res = await apiFetch("/api/user/tasks");
+    setTasks(res.tasks ?? []);
+  }
+
+  async function handleSuccess() {
     setAdding(false);
+    setEditingTask(null);
     setRefreshing(true);
     await fetchTasks();
     setRefreshing(false);
+    show("Tarea guardada", "success");
   }
 
-  async function cycleStatus(task) {
-    const next = NEXT_STATUS[task.status] ?? "pending";
-    const id = task.nocodb_id ?? task.id;
+  async function moveTask(taskId, toStatus) {
+    const id   = String(taskId);
+    const orig = tasks.find(t => String(t.nocodb_id ?? t.id) === id);
+    if (!orig || orig.status === toStatus) return;
 
-    setTasks(prev =>
-      prev.map(t => (t.nocodb_id ?? t.id) === id ? { ...t, status: next } : t)
-    );
+    setTasks(prev => prev.map(t =>
+      String(t.nocodb_id ?? t.id) === id ? { ...t, status: toStatus } : t
+    ));
 
     try {
       await apiFetch(`/api/user/tasks/${id}/status`, {
         method: "PATCH",
-        body: JSON.stringify({ status: next }),
+        body:   JSON.stringify({ status: toStatus }),
       });
     } catch (err) {
-      setTasks(prev =>
-        prev.map(t => (t.nocodb_id ?? t.id) === id ? { ...t, status: task.status } : t)
-      );
-      show(err.message || "No se pudo actualizar el estado de la tarea", "error");
+      setTasks(prev => prev.map(t =>
+        String(t.nocodb_id ?? t.id) === id ? { ...t, status: orig.status } : t
+      ));
+      show(err.message || "No se pudo actualizar la tarea", "error");
     }
   }
 
-  const visible = filter === "all"
-    ? tasks
-    : tasks.filter(t => t.status === filter);
+  function cycleStatus(task) {
+    const next = NEXT_STATUS[task.status] ?? "pending";
+    moveTask(task.nocodb_id ?? task.id, next);
+  }
 
+  async function confirmDelete() {
+    if (!deletingId) return;
+    try {
+      await apiFetch(`/api/admin/tasks/${deletingId}`, { method: "DELETE" });
+      setTasks(prev => prev.filter(t => (t.nocodb_id ?? t.id) !== deletingId));
+      show("Tarea eliminada", "success");
+    } catch (err) {
+      show(err.message, "danger");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  // ── Filtered tasks ────────────────────────────────────────
+  let visible = tasks;
+  if (filterProject)       visible = visible.filter(t => String(t.project_id) === filterProject);
+  if (filterPhase)         visible = visible.filter(t => t.phase === filterPhase);
+  if (filterStatus !== "all") visible = visible.filter(t => t.status === filterStatus);
+
+  // ── Counters ──────────────────────────────────────────────
+  const inProgressCount = tasks.filter(t => t.status === "in_progress").length;
+  const overdueCount    = tasks.filter(t =>
+    t.due_date && new Date(t.due_date) < new Date() && t.status !== "done"
+  ).length;
+
+  const showForm = adding || Boolean(editingTask);
+
+  const commonCardProps = {
+    onStatusChange: cycleStatus,
+    onEdit:   isAdmin ? task => setEditingTask(task) : null,
+    onDelete: isAdmin ? taskId => setDeletingId(taskId) : null,
+  };
+
+  // ── Loading skeleton ──────────────────────────────────────
   if (loading) {
     return (
       <div className="tasks-view">
-        <header className="view-header">
-          <div className="skeleton-block" style={{ height: "1.5rem", width: "8rem" }} />
-        </header>
-        <div className="task-filters">
-          {[0, 1, 2, 3].map(i => (
-            <div key={i} className="skeleton-block" style={{ height: "2rem", width: "6rem", borderRadius: "999px" }} />
-          ))}
+        <div className="skeleton-block" style={{ height: "1.5rem", width: "8rem", marginBottom: "0.5rem" }} />
+        <div className="skeleton-block" style={{ height: "0.8rem", width: "14rem", marginBottom: "1.5rem" }} />
+        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.25rem" }}>
+          {[0,1,2].map(i => <div key={i} className="skeleton-block" style={{ height: "2rem", width: "7rem", borderRadius: 8 }} />)}
         </div>
-        <ul className="task-list">
-          {[0, 1, 2, 3, 4].map(i => (
-            <li key={i} className="task-item">
-              <div className="skeleton-block" style={{ height: "1.6rem", width: "5.5rem", borderRadius: "999px", flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <div className="skeleton-block" style={{ height: "0.875rem", width: `${60 + (i % 3) * 15}%` }} />
-              </div>
-            </li>
-          ))}
-        </ul>
+        {[0,1,2,3].map(i => (
+          <div key={i} className="skeleton-block" style={{ height: "5.5rem", borderRadius: 10, marginBottom: "0.5rem" }} />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="tasks-view">
+    <div className={`tasks-view${view === "kanban" ? " kanban-mode" : ""}`}>
+
+      {/* ── Header ─────────────────────────────────────────── */}
       <header className="view-header">
-        <div className="projects-header-row">
-          <div>
+        <div className="task-bar">
+          <div className="task-bar-left">
             <h1 className="view-title">Tareas</h1>
             <p className="view-sub">
-              {refreshing ? "Actualizando…" : "Todas las tareas asignadas a tu cuenta."}
+              {refreshing ? "Actualizando…" : (
+                <>
+                  {tasks.length} {tasks.length === 1 ? "tarea" : "tareas"}
+                  {inProgressCount > 0 && ` · ${inProgressCount} en curso`}
+                  {overdueCount > 0 && (
+                    <span className="task-bar-overdue"> · {overdueCount} vencida{overdueCount !== 1 ? "s" : ""}</span>
+                  )}
+                </>
+              )}
             </p>
           </div>
-          {isAdmin && !adding && (
-            <button className="projects-add-btn" onClick={() => setAdding(true)}>
-              + Nueva tarea
-            </button>
-          )}
+
+          <div className="task-bar-right">
+            <div className="task-view-toggle">
+              <button
+                className={`task-view-btn${view === "list" ? " active" : ""}`}
+                onClick={() => switchView("list")}
+                title="Vista lista"
+              >
+                ≡ Lista
+              </button>
+              <button
+                className={`task-view-btn${view === "kanban" ? " active" : ""}`}
+                onClick={() => switchView("kanban")}
+                title="Vista Kanban"
+              >
+                ⠿ Kanban
+              </button>
+            </div>
+
+            {isAdmin && !showForm && (
+              <button className="projects-add-btn" onClick={() => setAdding(true)}>
+                + Nueva
+              </button>
+            )}
+          </div>
         </div>
       </header>
 
-      {adding && (
-        <NewTaskForm
+      {/* ── Form modal (create / edit) ──────────────────────── */}
+      {showForm && (
+        <TaskForm
           projects={projects}
-          userUuid={user?.uuid ?? user?.sub}
-          onSuccess={handleTaskSuccess}
-          onClose={() => setAdding(false)}
+          initial={editingTask || {}}
+          onSuccess={handleSuccess}
+          onClose={() => { setAdding(false); setEditingTask(null); }}
         />
       )}
 
-      <div className="task-filters">
-        {["all", "pending", "in_progress", "done"].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`task-filter-btn${filter === f ? " active" : ""}`}
+      {/* ── Confirm delete ──────────────────────────────────── */}
+      {deletingId && (
+        <div className="task-confirm-bar">
+          <span className="task-confirm-text">¿Eliminar esta tarea? Esta acción no se puede deshacer.</span>
+          <div className="task-confirm-actions">
+            <button className="task-confirm-yes" onClick={confirmDelete}>Eliminar</button>
+            <button className="task-confirm-no"  onClick={() => setDeletingId(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Filter bar ─────────────────────────────────────── */}
+      <div className="task-filter-bar">
+        <div className="task-filter-selects">
+          {projects.length > 0 && (
+            <select
+              className="task-filter-select"
+              value={filterProject}
+              onChange={e => { setFilterProject(e.target.value); setFilterPhase(""); }}
+            >
+              <option value="">Todos los proyectos</option>
+              {projects.map(p => (
+                <option key={p.nocodb_id ?? p.id} value={p.nocodb_id ?? p.id}>{p.title}</option>
+              ))}
+            </select>
+          )}
+
+          <select
+            className="task-filter-select"
+            value={filterPhase}
+            onChange={e => setFilterPhase(e.target.value)}
           >
-            {FILTER_LABEL[f]}
-            {f !== "all" && (
-              <span className="task-filter-count">
-                {tasks.filter(t => t.status === f).length}
-              </span>
-            )}
-          </button>
-        ))}
+            <option value="">Todas las fases</option>
+            {PHASE_ORDER.map(ph => (
+              <option key={ph} value={ph}>{PHASE_LABEL[ph]}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="task-filters">
+          {["all", "pending", "in_progress", "done"].map(f => (
+            <button
+              key={f}
+              onClick={() => setFilterStatus(f)}
+              className={`task-filter-btn${filterStatus === f ? " active" : ""}`}
+            >
+              {STATUS_FILTER_LABEL[f]}
+              {f !== "all" && (
+                <span className="task-filter-count">
+                  {tasks.filter(t => t.status === f).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {!visible.length ? (
-        <p className="view-empty">
-          {filter === "all"
-            ? "Todavía no tenés tareas asignadas."
-            : `Sin tareas con estado "${STATUS_LABEL[filter]}".`}
-        </p>
-      ) : (
-        <ul className="task-list">
-          {visible.map(task => {
-            const id = task.nocodb_id ?? task.id;
-            return (
-              <li key={id} className="task-item">
-                <button
-                  className={`task-status-pill ${task.status ?? "pending"}`}
-                  onClick={() => cycleStatus(task)}
-                  title="Cambiar estado"
-                  aria-label={`Estado: ${STATUS_LABEL[task.status] ?? task.status}. Clic para cambiar`}
-                >
-                  <span aria-hidden="true">{STATUS_ICON[task.status] ?? "○"}</span>
-                  {" "}{STATUS_LABEL[task.status] ?? task.status}
-                </button>
-
-                <div className="task-item-body">
-                  <span className="task-item-title">
-                    {task.priority === "high" && (
-                      <span className="task-priority-dot high">•</span>
-                    )}
-                    {task.title}
-                  </span>
-                  {task.due_date && (
-                    <span className="task-item-due">
-                      {new Date(task.due_date).toLocaleDateString("es-AR", {
-                        day: "numeric", month: "short",
-                      })}
-                    </span>
-                  )}
-                </div>
-              </li>
-            );
-          })}
-        </ul>
+      {/* ── LIST VIEW ──────────────────────────────────────── */}
+      {view === "list" && (
+        visible.length === 0 ? (
+          <div className="tasks-empty">
+            <p className="view-empty">
+              {filterProject || filterPhase || filterStatus !== "all"
+                ? "Sin tareas con esos filtros."
+                : "Todavía no tenés tareas asignadas."}
+            </p>
+            {(filterProject || filterPhase || filterStatus !== "all") && (
+              <button
+                className="tasks-empty-clear"
+                onClick={() => { setFilterProject(""); setFilterPhase(""); setFilterStatus("all"); }}
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="task-list-v2">
+            {visible.map(task => (
+              <TaskCard
+                key={task.nocodb_id ?? task.id}
+                task={task}
+                projectName={projectMap[String(task.project_id)]?.title ?? null}
+                compact={false}
+                {...commonCardProps}
+              />
+            ))}
+          </div>
+        )
       )}
+
+      {/* ── KANBAN VIEW ────────────────────────────────────── */}
+      {view === "kanban" && (
+        <div className="kanban-board">
+          {KANBAN_COLS.map(col => (
+            <KanbanColumn
+              key={col.status}
+              col={col}
+              tasks={visible.filter(t => t.status === col.status)}
+              projectMap={projectMap}
+              onMoveTask={(taskId, toStatus) => moveTask(taskId, toStatus)}
+              onQuickAdd={isAdmin && !showForm ? () => setAdding(true) : null}
+              {...commonCardProps}
+            />
+          ))}
+        </div>
+      )}
+
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import express from "express";
-import rateLimit from "express-rate-limit";
+import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 import { db } from "../services/nocodb.service.js";
 import { authMiddleware, requireAdmin } from "../middleware/auth.js";
+import { callClaude } from "../services/claude.service.js";
 
 const router = express.Router();
 
@@ -14,35 +15,11 @@ const VALID_PHASES = ["discovery", "brief", "design", "development", "testing", 
 const phaseAiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
-  keyGenerator: req => req.user?.sub || req.ip,
+  keyGenerator: req => req.user?.sub || ipKeyGenerator(req),
   message: { success: false, message: "Demasiados análisis. Esperá 15 minutos." },
   standardHeaders: true,
   legacyHeaders: false,
 });
-
-async function callClaude(system, userContent) {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) {
-    return "La integración con IA no está configurada todavía. El equipo OCHO completará este análisis manualmente.";
-  }
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type":      "application/json",
-      "x-api-key":         key,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model:      "claude-haiku-4-5-20251001",
-      max_tokens: 700,
-      system,
-      messages: [{ role: "user", content: userContent }],
-    }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error?.message ?? `Claude ${res.status}`);
-  return data.content?.[0]?.text ?? "";
-}
 
 function formatQuestionnaire(q) {
   if (!q || typeof q !== "object") return "(sin respuestas)";
@@ -185,7 +162,8 @@ router.post("/user/projects/:id/phases/:phase/ai", authMiddleware, phaseAiLimite
       return res.status(400).json({ success: false, message: "Completá al menos una pregunta antes de analizar" });
     }
 
-    const output = await callClaude(PHASE_SYSTEM[phase], PHASE_PROMPT[phase](questionnaire));
+    const rawOutput = await callClaude(PHASE_SYSTEM[phase], PHASE_PROMPT[phase](questionnaire), { maxTokens: 700 });
+    const output = rawOutput ?? "La integración con IA no está configurada todavía. El equipo OCHO completará este análisis manualmente.";
 
     // Persistir output en la fase para que el admin también lo vea
     if (phaseRow) {

@@ -51,11 +51,16 @@ export default function TaskGroups({ tasks, commonCardProps }) {
 
   if (!tasks.length) return null;
 
+  // Si "Completadas" es el único grupo con contenido (p. ej. el usuario filtró
+  // explícitamente por "Completadas"), no tiene sentido arrancar colapsado —
+  // eso es lo único que hay para mostrar.
+  const onlyDoneHasItems = groups.every(g => g.key === "done" || g.items.length === 0);
+
   return (
     <div className="task-groups">
       {groups.map(g => {
         if (!g.items.length) return null;
-        const collapsed = g.collapsedByDefault && !showDone;
+        const collapsed = g.collapsedByDefault && !onlyDoneHasItems && !showDone;
 
         return (
           <div key={g.key} className="task-group">

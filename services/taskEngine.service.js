@@ -149,14 +149,15 @@ function computeDependencyInfo(tasks) {
 }
 
 /**
- * Ranking determinístico de "siguiente acción": excluye completadas y bloqueadas,
+ * Ranking determinístico de "siguiente acción": excluye completadas, bloqueadas
+ * y las que esperan feedback del cliente (nada que el asignado pueda "empezar" ahí),
  * prioriza vencidas > vencen hoy > alta prioridad > cuánto desbloquean.
  */
 function rankNextAction(tasks) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
 
-  const candidates = tasks.filter(t => t.status !== "done" && !t.is_blocked);
+  const candidates = tasks.filter(t => t.status !== "done" && t.status !== "waiting_client" && !t.is_blocked);
   if (!candidates.length) return null;
 
   function score(t) {

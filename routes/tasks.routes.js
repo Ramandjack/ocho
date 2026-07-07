@@ -36,7 +36,7 @@ const PHASE_LABEL = {
 const taskAiLimiter = rateLimit({
   windowMs:      15 * 60_000,
   max:           10,
-  keyGenerator:  req => req.user?.sub || ipKeyGenerator(req),
+  keyGenerator:  req => req.user?.sub || ipKeyGenerator(req.ip),
   message:       { success: false, message: "Demasiadas generaciones IA. Esperá 15 minutos." },
   standardHeaders: true,
   legacyHeaders:   false,
@@ -45,7 +45,7 @@ const taskAiLimiter = rateLimit({
 const coachLimiter = rateLimit({
   windowMs:      15 * 60_000,
   max:           10,
-  keyGenerator:  req => req.user?.sub || ipKeyGenerator(req),
+  keyGenerator:  req => req.user?.sub || ipKeyGenerator(req.ip),
   message:       { success: false, message: "Demasiadas consultas al coach. Esperá 15 minutos." },
   standardHeaders: true,
   legacyHeaders:   false,
@@ -418,7 +418,7 @@ router.post("/user/tasks/coach", authMiddleware, coachLimiter, async (req, res) 
       db.getAll("projects"),
     ]);
     const enriched = enrichTasks(allTasks, projects);
-    const candidates = enriched.filter(t => t.assigned_to === uuid && t.status !== "done" && !t.is_blocked);
+    const candidates = enriched.filter(t => t.assigned_to === uuid && t.status !== "done" && t.status !== "waiting_client" && !t.is_blocked);
 
     if (!candidates.length) {
       return res.json({

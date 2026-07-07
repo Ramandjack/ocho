@@ -2,7 +2,12 @@ import rateLimit, { ipKeyGenerator } from "express-rate-limit";
 
 // Usa ipKeyGenerator para normalizar IPv4/IPv6 y evitar ERR_ERL_KEY_GEN_IPV6.
 // Depende de app.set('trust proxy', 1) en server.js para X-Forwarded-For en Render.
-const byIp = (req) => ipKeyGenerator(req);
+// IMPORTANTE: ipKeyGenerator espera el STRING de la IP (req.ip), no el request
+// completo — pasarle `req` hacía que devolviera el objeto tal cual (no es un
+// string, así que nunca matchea como IPv6), y como cada request de Express es
+// una instancia nueva, el rate limiter nunca reconocía dos requests como la
+// misma IP: el límite quedaba efectivamente deshabilitado.
+const byIp = (req) => ipKeyGenerator(req.ip);
 
 export const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,

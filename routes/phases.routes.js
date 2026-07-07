@@ -15,7 +15,7 @@ const VALID_PHASES = ["discovery", "brief", "design", "development", "testing", 
 const phaseAiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
-  keyGenerator: req => req.user?.sub || ipKeyGenerator(req),
+  keyGenerator: req => req.user?.sub || ipKeyGenerator(req.ip),
   message: { success: false, message: "Demasiados análisis. Esperá 15 minutos." },
   standardHeaders: true,
   legacyHeaders: false,

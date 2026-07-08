@@ -1,15 +1,17 @@
 import { useState } from "react";
 
 const STATUS_LABEL = {
-  pending:     "pendiente",
-  in_progress: "en curso",
-  done:        "completado",
+  pending:        "pendiente",
+  in_progress:    "en curso",
+  waiting_client: "esperando cliente",
+  done:           "completado",
 };
 
 const STATUS_ICON = {
-  pending:     "○",
-  in_progress: "◑",
-  done:        "●",
+  pending:        "○",
+  in_progress:    "◑",
+  waiting_client: "◐",
+  done:           "●",
 };
 
 const PRIORITY_LABEL = { low: "Baja", medium: "Media", high: "Alta" };
@@ -43,6 +45,7 @@ export default function TaskCard({
   onStatusChange,
   onEdit,
   onDelete,
+  onOpen,
   draggable = false,
 }) {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -84,6 +87,9 @@ export default function TaskCard({
           {isHighPrio && (
             <span className="tc-prio high">Alta</span>
           )}
+          {task.estimated_hours != null && (
+            <span className="tc-estimate">≈{task.estimated_hours}h</span>
+          )}
           {due && (
             <span className={`tc-due${due.overdue ? " overdue" : due.today ? " today" : ""}`}>
               {due.today ? "hoy" : due.formatted}
@@ -93,18 +99,36 @@ export default function TaskCard({
       </div>
 
       {/* ── Title ─────────────────────────────────────────── */}
-      <p className="tc-title">{task.title}</p>
+      <p
+        className={`tc-title${onOpen ? " tc-title-clickable" : ""}`}
+        onClick={onOpen ? () => onOpen(task) : undefined}
+      >
+        {task.title}
+      </p>
+
+      {/* ── Bloqueada ─────────────────────────────────────── */}
+      {task.is_blocked && (
+        <p className="tc-blocked" title={task.blocked_reason || ""}>
+          🔒 {task.blocked_reason || "Bloqueada"}
+        </p>
+      )}
 
       {/* ── Description (list mode only) ─────────────────── */}
       {!compact && task.description && (
         <p className="tc-desc">{task.description}</p>
       )}
 
-      {/* ── Footer: label · menu ──────────────────────────── */}
-      {(task.label || showMenu) && (
+      {/* ── Footer: label · desbloquea · links · menu ─────── */}
+      {(task.label || showMenu || task.unlocks?.length > 0 || task.links?.length > 0) && (
         <div className="tc-footer">
           <div className="tc-footer-left">
             {task.label && <span className="tc-label">{task.label}</span>}
+            {task.unlocks?.length > 0 && (
+              <span className="tc-unlocks">Desbloquea {task.unlocks.length}</span>
+            )}
+            {task.links?.length > 0 && (
+              <span className="tc-links">🔗 {task.links.length}</span>
+            )}
           </div>
 
           {showMenu && (

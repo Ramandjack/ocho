@@ -2,13 +2,21 @@ import { useEffect, useRef, useState } from "react";
 import { useOutletContext } from "react-router-dom";
 import { apiFetch } from "../../lib/api.js";
 import TaskCard from "./TaskCard.jsx";
+import ExecutionHeader from "./ExecutionHeader.jsx";
+import NextActionCard from "./NextActionCard.jsx";
+import TaskGroups from "./TaskGroups.jsx";
+import ProjectContextBar from "./ProjectContextBar.jsx";
+import TaskDetailDrawer from "./TaskDetailDrawer.jsx";
+import MetricsStrip from "./MetricsStrip.jsx";
+import ProductCoachPanel from "./ProductCoachPanel.jsx";
 
 /* ── Constants ──────────────────────────────────────────────── */
 
 const NEXT_STATUS = {
-  pending:     "in_progress",
-  in_progress: "done",
-  done:        "pending",
+  pending:        "in_progress",
+  in_progress:    "waiting_client",
+  waiting_client: "done",
+  done:           "pending",
 };
 
 const PHASE_ORDER = ["discovery", "brief", "design", "development", "testing", "launch"];
@@ -34,17 +42,23 @@ const LABEL_OPTIONS = [
   { value: "ops",           label: "Ops" },
 ];
 
+// "blocked" no es un status real — es un cómputo (is_blocked) que se muestra como
+// columna propia. Las demás columnas excluyen tareas bloqueadas para que no aparezcan
+// dos veces; "done" no se filtra porque una tarea completada nunca queda bloqueada.
 const KANBAN_COLS = [
-  { status: "pending",     label: "Pendiente" },
-  { status: "in_progress", label: "En curso" },
-  { status: "done",        label: "Completado" },
+  { status: "pending",        label: "Pendiente",         filter: t => t.status === "pending"        && !t.is_blocked },
+  { status: "in_progress",    label: "En curso",           filter: t => t.status === "in_progress"    && !t.is_blocked },
+  { status: "waiting_client", label: "Esperando cliente",  filter: t => t.status === "waiting_client" && !t.is_blocked },
+  { status: "blocked",        label: "Bloqueadas",         filter: t => t.is_blocked && t.status !== "done", locked: true },
+  { status: "done",           label: "Completado",         filter: t => t.status === "done" },
 ];
 
 const STATUS_FILTER_LABEL = {
-  all:         "Todas",
-  pending:     "Pendientes",
-  in_progress: "En curso",
-  done:        "Completadas",
+  all:            "Todas",
+  pending:        "Pendientes",
+  in_progress:    "En curso",
+  waiting_client: "Esperando cliente",
+  done:           "Completadas",
 };
 
 // NocoDB puede devolver el campo como "title" o "Title" según cómo se llame la columna
@@ -52,7 +66,7 @@ const pTitle = p => p?.title || p?.Title || p?.name || "";
 
 /* ── TaskForm ───────────────────────────────────────────────── */
 
-function TaskForm({ projects, initial = {}, onSuccess, onClose, isAdmin = false, userUuid = null }) {
+function TaskForm({ projects, allTasks = [], initial = {}, onSuccess, onClose, isAdmin = false, userUuid = null }) {
   const isEdit = Boolean(initial.nocodb_id ?? initial.id);
   const taskId = initial.nocodb_id ?? initial.id;
 
@@ -65,9 +79,29 @@ function TaskForm({ projects, initial = {}, onSuccess, onClose, isAdmin = false,
   );
   const [phase,  setPhase]  = useState(initial.phase || "");
   const [label,  setLabel]  = useState(initial.label || "");
+  const [estimatedHours, setEstimatedHours] = useState(initial.estimated_hours ?? "");
+  const [dependsOn, setDependsOn] = useState(
+    (initial.depends_on || []).map(String)
+  );
+  const [links, setLinks] = useState(
+    initial.links?.length ? initial.links : [{ label: "", url: "" }]
+  );
   const [saving, setSaving] = useState(false);
   const [error,  setError]  = useState(null);
   const titleRef = useRef(null);
+
+  // Candidatos de dependencia: tareas del mismo proyecto, excluyendo la actual.
+  const dependencyOptions = allTasks.filter(t => {
+    const id = String(t.nocodb_id ?? t.id);
+    if (isEdit && id === String(taskId)) return false;
+    return projectId && String(t.project_id) === String(projectId);
+  });
+
+  function updateLink(i, field, value) {
+    setLinks(prev => prev.map((l, idx) => (idx === i ? { ...l, [field]: value } : l)));
+  }
+  function addLink() { setLinks(prev => [...prev, { label: "", url: "" }]); }
+  function removeLink(i) { setLinks(prev => prev.filter((_, idx) => idx !== i)); }
 
   useEffect(() => { titleRef.current?.focus(); }, []);
 
@@ -99,6 +133,9 @@ function TaskForm({ projects, initial = {}, onSuccess, onClose, isAdmin = false,
         project_id:  projectId ? Number(projectId) : null,
         phase:       phase || null,
         label:       label || null,
+        estimated_hours: estimatedHours === "" ? null : Number(estimatedHours),
+        depends_on:      dependsOn.map(Number),
+        links:           links.filter(l => l.label.trim() && l.url.trim()),
       };
       if (isEdit) {
         const url = isAdmin
@@ -177,6 +214,42 @@ function TaskForm({ projects, initial = {}, onSuccess, onClose, isAdmin = false,
             <option value="">Sin etiqueta</option>
             {LABEL_OPTIONS.map(l => <option key={l.value} value={l.value}>{l.label}</option>)}
           </select>
+          <input className="task-form-input" type="number" min="0" step="0.25"
+            placeholder="Horas estimadas" value={estimatedHours}
+            onChange={e => setEstimatedHours(e.target.value)} disabled={saving}
+            style={{ maxWidth: "9rem" }} />
+        </div>
+
+        {dependencyOptions.length > 0 && (
+          <div className="task-form-field">
+            <label className="task-form-label">Depende de (opcional)</label>
+            <select className="task-form-select task-form-multiselect" multiple
+              value={dependsOn}
+              onChange={e => setDependsOn(Array.from(e.target.selectedOptions, o => o.value))}
+              disabled={saving}>
+              {dependencyOptions.map(t => (
+                <option key={t.nocodb_id ?? t.id} value={String(t.nocodb_id ?? t.id)}>{t.title}</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        <div className="task-form-field">
+          <label className="task-form-label">Links / entregables (opcional)</label>
+          {links.map((l, i) => (
+            <div className="task-form-row" key={i}>
+              <input className="task-form-input" placeholder="Etiqueta (ej: Figma)"
+                value={l.label} onChange={e => updateLink(i, "label", e.target.value)} disabled={saving} />
+              <input className="task-form-input" placeholder="https://…"
+                value={l.url} onChange={e => updateLink(i, "url", e.target.value)} disabled={saving} />
+              {links.length > 1 && (
+                <button type="button" className="task-form-cancel" onClick={() => removeLink(i)} disabled={saving}>✕</button>
+              )}
+            </div>
+          ))}
+          <button type="button" className="task-form-cancel" onClick={addLink} disabled={saving} style={{ alignSelf: "flex-start" }}>
+            + Agregar link
+          </button>
         </div>
 
         {error && <p className="task-form-error">{error}</p>}
@@ -349,16 +422,18 @@ function AiGenerator({ projects, onCreated, onClose, show }) {
 
 /* ── KanbanColumn ───────────────────────────────────────────── */
 
-function KanbanColumn({ col, tasks, projectMap, onMoveTask, onStatusChange, onEdit, onDelete, onQuickAdd }) {
+function KanbanColumn({ col, tasks, projectMap, onMoveTask, onStatusChange, onEdit, onDelete, onOpen, onQuickAdd }) {
   const [dragOver, setDragOver] = useState(false);
 
   function handleDragOver(e) {
+    if (col.locked) { e.dataTransfer.dropEffect = "none"; return; }
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOver(true);
   }
 
   function handleDrop(e) {
+    if (col.locked) return;
     e.preventDefault();
     setDragOver(false);
     const taskId = e.dataTransfer.getData("taskId");
@@ -367,7 +442,7 @@ function KanbanColumn({ col, tasks, projectMap, onMoveTask, onStatusChange, onEd
 
   return (
     <div
-      className={`kanban-col${dragOver ? " drag-over" : ""}`}
+      className={`kanban-col${dragOver ? " drag-over" : ""}${col.locked ? " locked" : ""}`}
       onDragOver={handleDragOver}
       onDragLeave={() => setDragOver(false)}
       onDrop={handleDrop}
@@ -384,15 +459,16 @@ function KanbanColumn({ col, tasks, projectMap, onMoveTask, onStatusChange, onEd
             task={task}
             projectName={pTitle(projectMap[String(task.project_id)]) || task.project_title || null}
             compact={true}
-            draggable={true}
+            draggable={!col.locked}
             onStatusChange={onStatusChange}
             onEdit={onEdit}
             onDelete={onDelete}
+            onOpen={onOpen}
           />
         ))}
       </div>
 
-      {onQuickAdd && (
+      {onQuickAdd && !col.locked && (
         <button className="kanban-add-btn" onClick={onQuickAdd} type="button">
           + Agregar
         </button>
@@ -407,6 +483,7 @@ export default function TasksView() {
   const { user, show }          = useOutletContext();
   const [tasks,    setTasks]    = useState([]);
   const [projects, setProjects] = useState([]);
+  const [dashboard, setDashboard] = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -418,6 +495,8 @@ export default function TasksView() {
   const [editingTask,   setEditingTask]   = useState(null);
   const [deletingId,    setDeletingId]    = useState(null);
   const [aiOpen,        setAiOpen]        = useState(false);
+  const [detailTask,    setDetailTask]    = useState(null);
+  const [coachOpen,     setCoachOpen]     = useState(false);
 
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
 
@@ -430,10 +509,12 @@ export default function TasksView() {
     Promise.all([
       apiFetch("/api/user/tasks"),
       apiFetch(projectsEndpoint),
+      apiFetch("/api/user/dashboard"),
     ])
-      .then(([tRes, pRes]) => {
+      .then(([tRes, pRes, dRes]) => {
         setTasks(tRes.tasks ?? []);
         setProjects(pRes.projects ?? []);
+        setDashboard(dRes.dashboard ?? null);
       })
       .catch(err => show(err.message || "Error cargando las tareas", "error"))
       .finally(() => setLoading(false));
@@ -449,12 +530,20 @@ export default function TasksView() {
     setTasks(res.tasks ?? []);
   }
 
+  // No bloquea la UI — sólo refresca resumen/siguiente acción en segundo plano.
+  function refreshDashboard() {
+    apiFetch("/api/user/dashboard")
+      .then(res => setDashboard(res.dashboard ?? null))
+      .catch(() => {});
+  }
+
   async function handleSuccess() {
     setAdding(false);
     setEditingTask(null);
     setRefreshing(true);
     await fetchTasks();
     setRefreshing(false);
+    refreshDashboard();
     show("Tarea guardada", "success");
   }
 
@@ -472,6 +561,7 @@ export default function TasksView() {
         method: "PATCH",
         body:   JSON.stringify({ status: toStatus }),
       });
+      refreshDashboard();
     } catch (err) {
       setTasks(prev => prev.map(t =>
         String(t.nocodb_id ?? t.id) === id ? { ...t, status: orig.status } : t
@@ -490,6 +580,7 @@ export default function TasksView() {
     try {
       await apiFetch(`/api/admin/tasks/${deletingId}`, { method: "DELETE" });
       setTasks(prev => prev.filter(t => (t.nocodb_id ?? t.id) !== deletingId));
+      refreshDashboard();
       show("Tarea eliminada", "success");
     } catch (err) {
       show(err.message, "danger");
@@ -521,7 +612,17 @@ export default function TasksView() {
       if (isAdmin || task.assigned_to === userUuid) setEditingTask(task);
     },
     onDelete: isAdmin ? taskId => setDeletingId(taskId) : null,
+    onOpen: task => setDetailTask(task),
   };
+
+  function startNextAction(task) {
+    moveTask(task.nocodb_id ?? task.id, "in_progress");
+  }
+
+  const filterProjectObj = filterProject ? projectMap[filterProject] : null;
+  const filterProjectTasks = filterProject
+    ? tasks.filter(t => String(t.project_id) === filterProject)
+    : [];
 
   // ── Loading skeleton ──────────────────────────────────────
   if (loading) {
@@ -541,6 +642,19 @@ export default function TasksView() {
 
   return (
     <div className={`tasks-view${view === "kanban" ? " kanban-mode" : ""}`}>
+
+      {/* ── Centro de Ejecución: header + siguiente acción ──── */}
+      <ExecutionHeader
+        user={user}
+        dashboard={dashboard}
+        selectedProject={filterProjectObj}
+        selectedProjectTasks={filterProjectTasks}
+      />
+      <NextActionCard
+        task={dashboard?.next_action || null}
+        onStart={startNextAction}
+        onOpen={task => setEditingTask(task)}
+      />
 
       {/* ── Header ─────────────────────────────────────────── */}
       <header className="view-header">
@@ -589,6 +703,12 @@ export default function TasksView() {
                 ✦ IA
               </button>
             )}
+            {!showForm && (
+              <button className="ai-gen-trigger-btn" onClick={() => setCoachOpen(true)}
+                title="El coach prioriza tus tareas existentes">
+                ✨ Planificar
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -597,6 +717,7 @@ export default function TasksView() {
       {showForm && (
         <TaskForm
           projects={projects}
+          allTasks={tasks}
           initial={editingTask || {}}
           isAdmin={isAdmin}
           userUuid={userUuid}
@@ -614,8 +735,17 @@ export default function TasksView() {
             setRefreshing(true);
             await fetchTasks();
             setRefreshing(false);
+            refreshDashboard();
           }}
           onClose={() => setAiOpen(false)}
+        />
+      )}
+
+      {coachOpen && (
+        <ProductCoachPanel
+          show={show}
+          onClose={() => setCoachOpen(false)}
+          onOpenTask={task => { setCoachOpen(false); setDetailTask(task); }}
         />
       )}
 
@@ -659,7 +789,7 @@ export default function TasksView() {
         </div>
 
         <div className="task-filters">
-          {["all", "pending", "in_progress", "done"].map(f => (
+          {["all", "pending", "in_progress", "waiting_client", "done"].map(f => (
             <button
               key={f}
               onClick={() => setFilterStatus(f)}
@@ -676,7 +806,9 @@ export default function TasksView() {
         </div>
       </div>
 
-      {/* ── LIST VIEW ──────────────────────────────────────── */}
+      {filterProjectObj && <ProjectContextBar project={filterProjectObj} projectTasks={filterProjectTasks} />}
+
+      {/* ── LIST VIEW (agrupada: Hoy/Próximas/Esperando/Bloqueadas/Completadas) ── */}
       {view === "list" && (
         visible.length === 0 ? (
           <div className="tasks-empty">
@@ -695,17 +827,13 @@ export default function TasksView() {
             )}
           </div>
         ) : (
-          <div className="task-list-v2">
-            {visible.map(task => (
-              <TaskCard
-                key={task.nocodb_id ?? task.id}
-                task={task}
-                projectName={pTitle(projectMap[String(task.project_id)]) || task.project_title || null}
-                compact={false}
-                {...commonCardProps}
-              />
-            ))}
-          </div>
+          <TaskGroups
+            tasks={visible.map(t => ({
+              ...t,
+              _projectName: pTitle(projectMap[String(t.project_id)]) || t.project_title || null,
+            }))}
+            commonCardProps={commonCardProps}
+          />
         )
       )}
 
@@ -716,7 +844,7 @@ export default function TasksView() {
             <KanbanColumn
               key={col.status}
               col={col}
-              tasks={visible.filter(t => t.status === col.status)}
+              tasks={visible.filter(col.filter)}
               projectMap={projectMap}
               onMoveTask={(taskId, toStatus) => moveTask(taskId, toStatus)}
               onQuickAdd={isAdmin && !showForm ? () => setAdding(true) : null}
@@ -724,6 +852,23 @@ export default function TasksView() {
             />
           ))}
         </div>
+      )}
+
+      <MetricsStrip tasks={tasks} />
+
+      {detailTask && (
+        <TaskDetailDrawer
+          task={detailTask}
+          projectName={pTitle(projectMap[String(detailTask.project_id)]) || detailTask.project_title || null}
+          currentUserUuid={userUuid}
+          show={show}
+          onClose={() => setDetailTask(null)}
+          onEdit={
+            (isAdmin || detailTask.assigned_to === userUuid)
+              ? task => { setDetailTask(null); setEditingTask(task); }
+              : null
+          }
+        />
       )}
 
     </div>

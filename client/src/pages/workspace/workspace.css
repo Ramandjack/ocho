@@ -1504,7 +1504,7 @@
 
 .kanban-board {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   align-items: start;
 }
@@ -1524,6 +1524,15 @@
   border-color: rgba(232,213,176,0.3);
   background: rgba(232,213,176,0.03);
 }
+
+/* "Bloqueadas" no es un target de drop válido — is_blocked se resuelve
+   completando la dependencia, no arrastrando la tarjeta. */
+.kanban-col.locked {
+  background: rgba(248,113,113,0.02);
+  border-color: rgba(248,113,113,0.14);
+}
+
+.kanban-col.locked .kanban-col-label { color: #f87171; }
 
 .kanban-col-head {
   display: flex;
@@ -4850,7 +4859,7 @@
 
   /* Kanban: horizontal scroll on mobile */
   .kanban-board {
-    grid-template-columns: repeat(3, 280px);
+    grid-template-columns: repeat(5, 280px);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     padding-bottom: 0.5rem;
@@ -4893,3 +4902,580 @@
   .profile-row { flex-direction: column; gap: 0; }
   .profile-body { gap: 1rem; }
 }
+
+/* ===========================
+   EXECUTION HEADER (Sprint D)
+=========================== */
+
+.exec-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.75rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line, rgba(255,255,255,0.08));
+}
+
+.exec-eyebrow {
+  font-size: 0.8rem;
+  color: var(--muted-2);
+  margin: 0 0 0.3rem;
+}
+
+.exec-headline {
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.6rem;
+  line-height: 1.35;
+}
+
+.exec-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.exec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--muted);
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 999px;
+  padding: 0.3em 0.7em;
+}
+
+.exec-chip-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent, #e8d5b0);
+  flex-shrink: 0;
+}
+
+.exec-chip.warn .exec-chip-dot { background: var(--accent, #e8d5b0); }
+.exec-chip.crit { color: #f87171; border-color: rgba(248,113,113,0.25); }
+.exec-chip.crit .exec-chip-dot { background: #f87171; }
+
+.exec-cards {
+  display: flex;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.exec-card {
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  min-width: 160px;
+}
+
+.exec-card-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin: 0 0 0.3rem;
+}
+
+.exec-card-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+}
+
+.exec-card-pct { font-size: 1.3rem; margin-bottom: 0.3rem; }
+
+.exec-card-sub {
+  font-size: 0.72rem;
+  color: var(--muted-2);
+  margin: 0.2rem 0 0;
+}
+
+/* ===========================
+   NEXT ACTION CARD (Sprint D)
+=========================== */
+
+.next-action {
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border: 1px solid var(--line-strong, rgba(255,255,255,0.14));
+  border-radius: 14px;
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1.75rem;
+}
+
+.next-action-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.next-action-empty-text {
+  font-size: 0.85rem;
+  color: var(--muted-2);
+  margin: 0;
+}
+
+.next-action-eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent, #e8d5b0);
+  margin: 0 0 0.55rem;
+}
+
+.next-action-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.next-action-breadcrumb b { color: var(--text); font-weight: 600; }
+.next-action-breadcrumb .sep { color: var(--muted-2); }
+
+.next-action-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.7rem;
+  line-height: 1.35;
+}
+
+.next-action-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem; }
+
+.next-action-pill {
+  font-size: 0.72rem;
+  color: var(--muted);
+  border: 1px solid var(--line-strong, rgba(255,255,255,0.14));
+  border-radius: 999px;
+  padding: 0.25em 0.7em;
+}
+
+.next-action-pill.crit { color: #f87171; border-color: rgba(248,113,113,0.3); }
+.next-action-pill.warn { color: var(--accent, #e8d5b0); border-color: rgba(232,213,176,0.3); }
+
+.next-action-unlocks {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin: 0 0 0.9rem;
+}
+
+.next-action-btn {
+  background: var(--accent, #e8d5b0);
+  color: #171410;
+  font-weight: 600;
+  font-size: 0.85rem;
+  border: none;
+  border-radius: 8px;
+  padding: 0.55em 1.1em;
+  cursor: pointer;
+}
+
+.next-action-btn:hover { opacity: 0.9; }
+
+/* ===========================
+   TASK GROUPS (Sprint D)
+=========================== */
+
+.task-groups { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.task-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.task-group-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  font-weight: 600;
+}
+
+.task-group-count {
+  font-size: 0.7rem;
+  color: var(--muted-2);
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border-radius: 999px;
+  padding: 0.05em 0.5em;
+}
+
+.task-group-toggle {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted-2);
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.task-group-toggle:hover { color: var(--text); }
+
+.task-group-body { display: flex; flex-direction: column; gap: 0.4rem; }
+
+/* ===========================
+   PROJECT CONTEXT BAR (Sprint D)
+=========================== */
+
+.context-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.context-bar b { color: var(--text); }
+.context-bar .sep { color: var(--muted-2); }
+.context-bar-pct { color: var(--accent, #e8d5b0); }
+
+/* ===========================
+   TASK CARD — Sprint D additions
+=========================== */
+
+.tc-estimate {
+  font-size: 0.72rem;
+  color: var(--muted-2);
+}
+
+.tc-blocked {
+  font-size: 0.75rem;
+  color: #f87171;
+  margin: -0.15rem 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tc-unlocks {
+  font-size: 0.68rem;
+  color: var(--muted-2);
+}
+
+.tc-links {
+  font-size: 0.68rem;
+  color: var(--muted-2);
+}
+
+/* ===========================
+   TASK FORM — Sprint D additions
+=========================== */
+
+.task-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.task-form-label {
+  font-size: 0.72rem;
+  color: var(--muted-2);
+}
+
+.task-form-multiselect {
+  min-height: 5.5rem;
+}
+
+@media (max-width: 640px) {
+  .exec-header { flex-direction: column; }
+  .exec-cards { width: 100%; }
+  .exec-card { flex: 1; }
+}
+
+/* ===========================
+   TASK CARD — título clickeable (Sprint E)
+=========================== */
+
+.tc-title-clickable { cursor: pointer; }
+.tc-title-clickable:hover { text-decoration: underline; text-decoration-color: rgba(255,255,255,0.25); }
+
+/* ===========================
+   TASK DETAIL DRAWER (Sprint E)
+=========================== */
+
+.task-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.task-drawer {
+  width: min(440px, 100%);
+  height: 100%;
+  background: var(--bg-elevated, #141310);
+  border-left: 1px solid var(--line-strong, rgba(255,255,255,0.14));
+  padding: 1.5rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  box-shadow: -20px 0 60px rgba(0,0,0,0.4);
+}
+
+.task-drawer-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.task-drawer-eyebrow {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.task-drawer-eyebrow .sep { color: var(--muted-2); }
+
+.task-drawer-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.task-drawer-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.task-drawer-meta { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+
+.task-drawer-section {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line, rgba(255,255,255,0.08));
+}
+
+.task-drawer-section-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin: 0 0 0.5rem;
+}
+
+.task-drawer-blocked-text {
+  font-size: 0.82rem;
+  color: #f87171;
+  margin: 0;
+}
+
+.task-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.task-drawer-list a { color: var(--accent, #e8d5b0); text-decoration: none; }
+.task-drawer-list a:hover { text-decoration: underline; }
+
+.task-drawer-dep-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--muted-2);
+  margin-right: 0.5rem;
+}
+
+.task-drawer-dep-dot.done { background: #6fb58c; }
+
+.task-drawer-edit-btn { align-self: flex-start; }
+
+/* ===========================
+   TASK COMMENTS (Sprint E)
+=========================== */
+
+.task-comments-empty {
+  font-size: 0.8rem;
+  color: var(--muted-2);
+  margin: 0 0 0.75rem;
+}
+
+.task-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-bottom: 0.9rem;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.task-comment {
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+}
+
+.task-comment.own { border-color: rgba(232,213,176,0.25); }
+
+.task-comment-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+}
+
+.task-comment-author { font-size: 0.75rem; font-weight: 600; color: var(--text); }
+.task-comment-time   { font-size: 0.7rem;  color: var(--muted-2); }
+.task-comment-body   { font-size: 0.82rem; color: var(--muted); margin: 0; line-height: 1.5; }
+
+.task-comments-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.task-comments-form .task-form-input { flex: 1; }
+
+/* ===========================
+   METRICS STRIP (Sprint E)
+=========================== */
+
+.metrics-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line, rgba(255,255,255,0.08));
+}
+
+.metric-tile {
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+}
+
+.metric-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted-2);
+  margin: 0 0 0.35rem;
+}
+
+.metric-value {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-value.crit { color: #f87171; }
+
+@media (max-width: 900px) {
+  .metrics-strip { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 640px) {
+  .task-drawer { width: 100%; }
+}
+
+/* ===========================
+   PRODUCT COACH PANEL (Sprint F)
+=========================== */
+
+.coach-modal { gap: 1rem; }
+
+.coach-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.5rem 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  justify-content: center;
+}
+
+.coach-empty {
+  font-size: 0.85rem;
+  color: var(--muted-2);
+  text-align: center;
+  padding: 1.5rem 0;
+  margin: 0;
+}
+
+.coach-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+.coach-item {
+  display: flex;
+  gap: 0.75rem;
+  background: var(--bg-elevated, rgba(255,255,255,0.03));
+  border: 1px solid var(--line, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  padding: 0.75rem 0.9rem;
+}
+
+.coach-item-rank {
+  flex-shrink: 0;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: var(--accent, #e8d5b0);
+  color: #171410;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.coach-item-body { min-width: 0; }
+
+.coach-item-title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 0.25rem;
+  cursor: pointer;
+}
+
+.coach-item-title:hover { text-decoration: underline; }
+
+.coach-item-reason {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0 0 0.2rem;
+  line-height: 1.5;
+}
+
+.coach-item-impact {
+  font-size: 0.76rem;
+  color: var(--accent, #e8d5b0);
+  margin: 0;
+}
+

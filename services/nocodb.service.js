@@ -83,18 +83,26 @@ function tableUrl(table) {
   return `${NOCODB_HOST}/${NOCODB_BASE}/${id}/records`;
 }
 
+// Algunas tablas (projects, tasks) tienen la columna de título nombrada "Title"
+// (mayúscula) en vez de "title". Se alias acá, en un solo lugar, para que el
+// resto del stack pueda confiar siempre en "title" (minúscula).
+function normalizeTitle(flat) {
+  if (flat.title === undefined && flat.Title !== undefined) flat.title = flat.Title;
+  return flat;
+}
+
 function flatten(record) {
   if (!record || typeof record !== "object") return {};
   if (record.fields && typeof record.fields === "object") {
-    return {
+    return normalizeTitle({
       id: record.id,
       nocodb_id: record.id,
       ...record.fields,
-    };
+    });
   }
   // NocoDB v3 devuelve el PK como "Id" (mayúscula) en el endpoint /records/:id
   const rid = record.Id ?? record.id ?? record.nocodb_id;
-  if (rid != null) return { ...record, id: rid, nocodb_id: rid };
+  if (rid != null) return normalizeTitle({ ...record, id: rid, nocodb_id: rid });
   return record;
 }
 

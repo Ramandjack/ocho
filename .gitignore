@@ -30,3 +30,6 @@ temp/
 
 # coverage
 coverage/uploads/
+
+# archivos subidos por usuarios (recursos, adjuntos de workspace) — nunca al repo
+/uploads/

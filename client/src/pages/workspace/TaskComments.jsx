@@ -6,7 +6,7 @@ function formatDateTime(iso) {
   return new Date(iso).toLocaleString("es-AR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }
 
-export default function TaskComments({ taskId, currentUserUuid, show }) {
+export default function TaskComments({ taskId, currentUserUuid, show, onLoaded }) {
   const [messages, setMessages] = useState([]);
   const [loading,  setLoading]  = useState(true);
   const [content,  setContent]  = useState("");
@@ -21,6 +21,10 @@ export default function TaskComments({ taskId, currentUserUuid, show }) {
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [taskId]);
+
+  // Reporta la lista al padre para que pueda derivar cosas (ej. último comentario de
+  // revisión) sin duplicar el fetch de comentarios.
+  useEffect(() => { onLoaded?.(messages); }, [messages, onLoaded]);
 
   async function send(e) {
     e.preventDefault();

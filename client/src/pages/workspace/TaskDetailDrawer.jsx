@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import TaskComments from "./TaskComments.jsx";
 
 const PHASE_LABEL = {
@@ -98,8 +99,12 @@ export default function TaskDetailDrawer({ task, projectName, currentUserUuid, o
           <TaskComments taskId={taskId} currentUserUuid={currentUserUuid} show={show} />
         </div>
 
+        <Link to={`/panel/tasks/${taskId}/workspace`} className="task-form-save task-drawer-edit-btn">
+          Abrir Workspace →
+        </Link>
+
         {onEdit && (
-          <button className="task-form-save task-drawer-edit-btn" onClick={() => onEdit(task)} type="button">
+          <button className="task-form-cancel task-drawer-edit-btn" onClick={() => onEdit(task)} type="button">
             Editar tarea
           </button>
         )}

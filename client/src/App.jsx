@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import ProtectedRoute       from "./components/ProtectedRoute.jsx";
 
@@ -30,6 +31,19 @@ import AdminModules         from "./pages/admin/AdminModules.jsx";
 import AdminContent         from "./pages/admin/AdminContent.jsx";
 import AdminSecurity        from "./pages/admin/AdminSecurity.jsx";
 
+// Carga diferida: trae Tiptap + Monaco + Excalidraw, que suman ~2MB — nadie más que
+// quien realmente abre el workspace de una tarea debería pagar ese peso en el bundle.
+const TaskWorkspaceView = lazy(() => import("./pages/workspace/TaskWorkspaceView.jsx"));
+
+function WorkspaceFallback() {
+  return (
+    <div className="ws-workspace">
+      <div className="skeleton-block" style={{ height: "1.5rem", width: "12rem", marginBottom: "1rem" }} />
+      <div className="skeleton-block" style={{ height: "60vh", borderRadius: 12 }} />
+    </div>
+  );
+}
+
 export default function App() {
   return (
     <Routes>
@@ -43,6 +57,11 @@ export default function App() {
         <Route path="projects"       element={<ProjectsView />} />
         <Route path="projects/:id"   element={<WorkspaceView />} />
         <Route path="tasks"          element={<TasksView />} />
+        <Route path="tasks/:id/workspace" element={
+          <Suspense fallback={<WorkspaceFallback />}>
+            <TaskWorkspaceView />
+          </Suspense>
+        } />
         <Route path="activity"       element={<ActivityView />} />
         <Route path="content"        element={<ContentView />} />
         <Route path="resources"      element={<ResourcesView />} />

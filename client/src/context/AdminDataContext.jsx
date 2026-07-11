@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { apiFetch } from "../lib/api.js";
 
 const Ctx = createContext(null);
@@ -68,10 +68,17 @@ export function AdminDataProvider({ children }) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const didInit = useRef(false);
   useEffect(() => {
-    fetchBootstrap()
-      .catch(err => setLoadError(err.message || "Error al conectar con el servidor"))
-      .finally(() => setReady(true));
+    // React StrictMode invoca este efecto dos veces en desarrollo (mount→cleanup→mount)
+    // para detectar efectos no idempotentes — este guard evita duplicar el fetch inicial
+    // contra NocoDB. El ref sobrevive ese doble-invoke porque la instancia no se destruye.
+    if (!didInit.current) {
+      didInit.current = true;
+      fetchBootstrap()
+        .catch(err => setLoadError(err.message || "Error al conectar con el servidor"))
+        .finally(() => setReady(true));
+    }
     const id = setInterval(fetchBootstrap, 120_000);
     return () => clearInterval(id);
   // eslint-disable-next-line react-hooks/exhaustive-deps

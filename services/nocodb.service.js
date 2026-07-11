@@ -28,6 +28,10 @@ const TABLE_IDS = {
   project_phases:        process.env.NOCODB_PROJECT_PHASES_TABLE,
   project_deliverables:  process.env.NOCODB_PROJECT_DELIVERABLES_TABLE,
   project_score:         process.env.NOCODB_PROJECT_SCORE_TABLE,
+  workspace_sessions:    process.env.NOCODB_WORKSPACE_SESSIONS_TABLE,
+  workspace_documents:   process.env.NOCODB_WORKSPACE_DOCUMENTS_TABLE,
+  workspace_versions:    process.env.NOCODB_WORKSPACE_VERSIONS_TABLE,
+  workspace_assets:      process.env.NOCODB_WORKSPACE_ASSETS_TABLE,
 };
 
 /* ===========================

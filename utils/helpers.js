@@ -37,7 +37,7 @@ export function getCookieOptions() {
     httpOnly: true,
     secure:   IS_PROD,
     sameSite: IS_PROD ? "none" : "lax",
-    maxAge:   1000 * 60 * 60 * 24 * 7,
+    maxAge:   1000 * 60 * 60 * 24, // 24h, igual que expiresIn del JWT (createToken)
     path: "/",
   };
 }
@@ -59,7 +59,7 @@ function getCsrfCookieOptions() {
     httpOnly: false,
     secure:   IS_PROD,
     sameSite: IS_PROD ? "none" : "lax",
-    maxAge:   1000 * 60 * 60 * 24 * 7,
+    maxAge:   1000 * 60 * 60 * 24, // 24h, igual que la cookie de sesión
     path: "/",
   };
 }
